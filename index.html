@@ -46,7 +46,7 @@
     const SB_URL = "https://gbjlroojsweedundumfi.supabase.co"; 
     const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
     
-    // [수정 완료] 라이브러리 충돌을 방지하기 위해 window 객체에서 호출하도록 교정했습니다.
+    // 라이브러리 충돌을 방지하기 위해 window 객체에서 호출하도록 설정
     const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
     // 기본 플래너 데이터 구조
@@ -111,7 +111,7 @@
         } catch (err) {
             console.error("서버 저장 실패:", err);
             showStatus("❌ 저장 실패 (Supabase 테이블 설정을 확인하세요)");
-            alert("서버 저장에 실패했습니다. 이전 단계에서 안내해 드린 대시보드 내 테이블 생성(planner_data)과 RLS 해제 세팅이 되어있는지 꼭 확인해 주세요!");
+            alert("서버 저장에 실패했습니다. Supabase 대시보드 내 테이블 생성(planner_data)과 RLS 해제 세팅이 되어있는지 꼭 확인해 주세요!");
         } finally {
             showLoading(false);
         }
@@ -120,7 +120,7 @@
     function showLoading(isLoading) { document.getElementById('loading').style.display = isLoading ? 'block' : 'none'; }
     function showStatus(msg) { document.getElementById('status').innerText = msg; }
 
-    // 화면 렌더링
+    // [복구 완료] 끊겼던 화면 렌더링 코드를 온전하게 연결했습니다.
     function renderPlanner(data) {
         const listContainer = document.getElementById('planner-list');
         listContainer.innerHTML = '';
@@ -138,4 +138,41 @@
                 groupHtml += `
                     <div class="task-item" style="border-left-color: ${group.color}">
                         <div class="task-header">
-                            <span>${unit
+                            <span>${unit.t}</span>
+                            <select onchange="updateStatus(${groupIdx}, ${unitIdx}, this.value)">
+                                <option value="미완료" ${unit.s==='미완료'?'selected':''}>미완료</option>
+                                <option value="진행중" ${unit.s==='진행중'?'selected':''}>진행중</option>
+                                <option value="완료" ${unit.s==='완료'?'selected':''}>완료</option>
+                            </select>
+                        </div>
+                        <div class="task-desc">${unit.d || '설명 없음'}</div>
+                    </div>
+                `;
+            });
+
+            groupHtml += `</div>`;
+            listContainer.innerHTML += groupHtml;
+        });
+    }
+
+    function updateStatus(groupIdx, unitIdx, newStatus) {
+        plannerData[groupIdx].units[unitIdx].s = newStatus;
+        showStatus("⚠️ 변경 사항이 있습니다. '서버에 저장하기'를 꼭 눌러주세요!");
+    }
+
+    async function loadData() {
+        plannerData = await dbGet();
+        renderPlanner(plannerData);
+    }
+
+    async function saveData() {
+        await dbSet(plannerData);
+    }
+
+    window.onload = async () => {
+        await loadData();
+    };
+</script>
+
+</body>
+</html>
