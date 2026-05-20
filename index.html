@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📖 스터디 플래너</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* 상단바 */
+#topbar {
+  background: #333; color: #fff; padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 50;
+}
+#topbar .title { font-size: 13px; font-weight: 700; }
+#topbar .user { font-size: 10px; color: #999; }
+.spacer { flex: 1; }
+.tab-btn {
+  background: transparent; color: #aaa; border: 1px solid #555;
+  padding: 4px 12px; font-size: 11px;
+}
+.tab-btn.active { background: #fff; color: #222; border-color: #fff; font-weight: 700; }
+.save-btn { background: #4a7c59; color: #fff; border: none; padding: 4px 14px; font-size: 11px; font-weight: 700; }
+.print-btn { background: #555; color: #fff; border: none; padding: 4px 12px; font-size: 11px; }
+#status { font-size: 10px; color: #aaa; min-width: 80px; }
+
+/* 로그인 */
+#login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.login-box {
+  background: #fff; border: 2px solid #222; padding: 36px 28px;
+  box-shadow: 4px 4px 0 #222; width: 100%; max-width: 320px; text-align: center;
+}
+.login-box h2 { font-size: 16px; margin-bottom: 20px; }
+.login-box input {
+  width: 100%; border: 1px solid #aaa; padding: 8px 10px; font-size: 13px;
+  margin-bottom: 10px; outline: none;
+}
+.login-box button {
+  width: 100%; background: #222; color: #fff; border: none;
+  padding: 9px; font-size: 13px; font-weight: 700;
+}
+
+/* 월/주 선택 */
+#week-selector {
+  display: flex; gap: 6px; padding: 10px 8px; flex-wrap: wrap; align-items: center;
+}
+#week-selector select {
+  border: 1px solid #aaa; padding: 5px 8px; font-size: 13px;
+  background: #fff; font-weight: 700;
+}
+.week-btn {
+  background: #fff; color: #333; border: 1px solid #aaa;
+  padding: 5px 10px; font-size: 11px;
+}
+.week-btn.active { background: #333; color: #fff; font-weight: 700; }
+
+/* 플래너 테이블 */
+#planner-wrap { padding: 0 8px 16px; overflow-x: auto; }
+.planner-table { border-collapse: collapse; width: 100%; min-width: 900px; background: #fff; border: 2px solid #555; }
+.planner-table td, .planner-table th { border: 1px solid #bbb; }
+
+.week-title-row td { background: #333; color: #fff; font-weight: 700; font-size: 13px; text-align: center; padding: 6px; }
+.date-row td { background: #f8f8f8; padding: 3px 5px; text-align: center; }
+.date-row td input { width: 100%; border: none; background: transparent; font-size: 11px; text-align: center; outline: none; }
+.day-header-row th { padding: 5px 6px; font-weight: 700; font-size: 11px; text-align: center; }
+.hours-row td { padding: 2px 5px; font-size: 10px; }
+.hours-row td input { border: none; background: transparent; font-size: 10px; width: 60px; outline: none; }
+
+.subj-row td { padding: 3px 6px; font-weight: 700; font-size: 11px; }
+.subj-name { cursor: pointer; }
+.subj-time { font-size: 9px; color: #777; font-weight: 400; margin-left: 4px; }
+.task-row td { padding: 1px 4px; }
+.task-row td.empty { background: #f5f5f5; }
+.task-cell { display: flex; align-items: center; gap: 4px; }
+.task-cell input[type=checkbox] { width: 12px; height: 12px; accent-color: #4a7c59; flex-shrink: 0; }
+.task-cell input[type=text] {
+  flex: 1; border: none; border-bottom: 1px solid #eee;
+  font-size: 11px; padding: 1px 2px; background: transparent; outline: none;
+}
+.task-cell input[type=text].done { text-decoration: line-through; color: #aaa; }
+.add-task-btn { font-size: 9px; color: #ccc; border: none; background: transparent; padding: 1px 4px; }
+.add-block-row td { text-align: center; padding: 3px; }
+.add-block-btn { font-size: 10px; color: #bbb; border: 1px dashed #ddd; background: transparent; padding: 2px 8px; }
+.memo-label { font-size: 9px; color: #bbb; display: block; margin-bottom: 2px; }
+.memo-row td { padding: 3px 5px; vertical-align: top; }
+.memo-row textarea {
+  width: 100%; border: none; font-size: 10px; resize: vertical;
+  outline: none; background: #fffef8; min-height: 36px;
+}
+
+/* 주간 메모 */
+.week-memo-table { border-collapse: collapse; width: 100%; margin-top: 6px; background: #fff; border: 2px solid #555; }
+.week-memo-table td, .week-memo-table th { border: 1px solid #bbb; }
+.week-memo-header td { background: #333; color: #fff; font-weight: 700; font-size: 11px; padding: 4px 8px; }
+.week-memo-table th { background: #f0f0f0; padding: 3px 8px; font-size: 10px; font-weight: 700; text-align: left; }
+.week-memo-table td.memo-cell { padding: 4px 6px; vertical-align: top; }
+.week-memo-table textarea { width: 100%; border: none; font-size: 11px; resize: vertical; outline: none; min-height: 50px; }
+
+/* 과목 편집 모달 */
+#modal-bg {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 100; align-items: center; justify-content: center; padding: 16px;
+}
+#modal-bg.open { display: flex; }
+#modal {
+  background: #fff; border: 2px solid #333; padding: 20px;
+  width: 100%; max-width: 320px; box-shadow: 4px 4px 0 #333;
+}
+#modal h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+#modal label { font-size: 10px; color: #888; display: block; margin-bottom: 3px; }
+#modal input { width: 100%; border: 1px solid #ddd; padding: 7px 10px; font-size: 13px; margin-bottom: 10px; outline: none; }
+.subj-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.subj-tag {
+  border: 1px solid #ddd; padding: 3px 10px; font-size: 11px;
+  background: #fff; color: #555;
+}
+.subj-tag.selected { background: #333; color: #fff; border-color: #333; font-weight: 700; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btns button { border: 1px solid #ccc; padding: 6px 14px; font-size: 12px; }
+.modal-cancel { background: #eee; color: #555; }
+.modal-confirm { background: #222; color: #fff; border-color: #222; }
+
+/* 진도관리 */
+#progress-wrap { padding: 10px 8px; }
+.progress-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px; margin-bottom: 12px; }
+.progress-card { background: #fff; border: 1px solid #bbb; padding: 10px; cursor: pointer; box-shadow: 2px 2px 0 #ccc; }
+.progress-card .name { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
+.progress-bar-bg { background: #eee; height: 5px; overflow: hidden; margin-bottom: 3px; }
+.progress-bar-fill { height: 100%; transition: width 0.3s; }
+.progress-card .pct { font-size: 10px; color: #888; }
+.subj-detail { background: #fff; border: 1px solid #bbb; margin-bottom: 8px; }
+.subj-detail-header {
+  padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #eee;
+}
+.subj-detail-header .name { font-weight: 700; flex: 1; }
+.unit-table { border-collapse: collapse; width: 100%; font-size: 11px; }
+.unit-table th { background: #f5f5f5; border: 1px solid #eee; padding: 4px 8px; font-size: 10px; font-weight: 700; text-align: left; }
+.unit-table td { border: 1px solid #eee; padding: 5px 8px; }
+.unit-table select { border: 1px solid #ddd; padding: 2px 6px; font-size: 11px; outline: none; font-weight: 700; }
+.add-unit-row { padding: 6px 10px; }
+.add-unit-row input { border: 1px solid #ddd; padding: 4px 8px; font-size: 11px; outline: none; margin-right: 4px; }
+.add-unit-row button { background: #333; color: #fff; border: none; padding: 4px 10px; font-size: 11px; }
+
+/* 성취통계 */
+#stats-wrap { padding: 10px 8px; }
+.stats-month-select { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.stats-month-select select { border: 1px solid #aaa; padding: 5px 8px; font-size: 12px; font-weight: 700; background: #fff; }
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 8px; margin-bottom: 14px; }
+.summary-card { background: #fff; border: 1px solid #bbb; padding: 10px; box-shadow: 2px 2px 0 #ccc; }
+.summary-card .label { font-size: 10px; color: #888; margin-bottom: 4px; }
+.summary-card .val { font-size: 18px; font-weight: 700; }
+.stats-table { border-collapse: collapse; width: 100%; background: #fff; border: 2px solid #555; margin-bottom: 10px; font-size: 11px; }
+.stats-table th, .stats-table td { border: 1px solid #bbb; padding: 4px 6px; }
+.stats-table th { background: #f0f0f0; font-weight: 700; text-align: center; }
+
+@media print {
+  @page { size: A4 landscape; margin: 4mm; }
+  body { background: #fff !important; }
+  #topbar, #week-selector, .add-task-btn, .add-block-row, .add-unit-row { display: none !important; }
+  #planner-wrap { padding: 0; }
+  .planner-table { min-width: 100%; font-size: 7px; }
+  .task-cell input[type=text] { display: none; }
+  .task-text-print { display: inline !important; font-size: 7px; }
+}
+.task-text-print { display: none; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:36px;margin-bottom:8px">📖</div>
+    <h2>주간 스터디 플래너</h2>
+    <p style="font-size:11px;color:#888;margin-bottom:20px;line-height:1.6">닉네임으로 어디서든 동기화</p>
+    <input type="text" id="login-input" placeholder="닉네임 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    <p style="font-size:10px;color:#bbb;margin-bottom:12px">같은 닉네임으로 어디서든 이어서 쓸 수 있어요</p>
+    <button onclick="doLogin()">시작하기</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="topbar">
+    <span class="title">📖 스터디 플래너</span>
+    <span class="user" id="user-label"></span>
+    <div class="spacer"></div>
+    <button class="tab-btn active" onclick="showTab('planner')">📅 플래너</button>
+    <button class="tab-btn" onclick="showTab('progress')">📊 진도관리</button>
+    <button class="tab-btn" onclick="showTab('stats')">📈 성취통계</button>
+    <button class="tab-btn" onclick="showTab('subjects')">📚 과목</button>
+    <button class="save-btn" id="save-btn" onclick="saveAll()" style="display:none">💾 저장</button>
+    <button class="print-btn" id="print-btn" onclick="window.print()" style="display:none">🖨️ 출력</button>
+    <span id="status"></span>
+  </div>
+
+  <!-- 플래너 탭 -->
+  <div id="tab-planner">
+    <div id="week-selector">
+      <select id="month-sel" onchange="onWeekChange()">
+        <option>1월</option><option>2월</option><option>3월</option><option>4월</option>
+        <option>5월</option><option>6월</option><option>7월</option><option>8월</option>
+        <option>9월</option><option>10월</option><option>11월</option><option>12월</option>
+      </select>
+      <button class="week-btn active" onclick="selectWeek('1주차',this)">1주차</button>
+      <button class="week-btn" onclick="selectWeek('2주차',this)">2주차</button>
+      <button class="week-btn" onclick="selectWeek('3주차',this)">3주차</button>
+      <button class="week-btn" onclick="selectWeek('4주차',this)">4주차</button>
+      <button class="week-btn" onclick="selectWeek('5주차',this)">5주차</button>
+    </div>
+    <div id="planner-wrap"></div>
+  </div>
+
+  <!-- 진도관리 탭 -->
+  <div id="tab-progress" style="display:none">
+    <div id="progress-wrap"></div>
+  </div>
+
+  <!-- 성취통계 탭 -->
+  <div id="tab-stats" style="display:none">
+    <div id="stats-wrap"></div>
+  </div>
+
+  <!-- 과목 탭 -->
+  <div id="tab-subjects" style="display:none">
+    <div style="padding:12px 8px;max-width:480px">
+      <table style="border-collapse:collapse;width:100%;background:#fff;border:1px solid #bbb">
+        <thead>
+          <tr><td colspan="2" style="background:#333;color:#fff;font-weight:700;padding:6px 10px;font-size:12px">📚 과목 목록</td></tr>
+          <tr style="background:#f0f0f0">
+            <th style="border:1px solid #bbb;padding:4px 10px;font-size:10px;text-align:left">과목명</th>
+            <th style="border:1px solid #bbb;padding:4px 6px;width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="subjects-tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td style="border:1px solid #bbb;padding:5px 8px">
+              <input type="text" id="new-subj-input" placeholder="새 과목 입력 후 Enter"
+                style="border:none;font-size:12px;width:100%;outline:none"
+                onkeydown="if(event.key==='Enter')addSubject()">
+            </td>
+            <td style="border:1px solid #bbb;padding:5px 6px;text-align:center">
+              <button onclick="addSubject()" style="background:#333;color:#fff;border:none;padding:3px 8px;font-size:11px">추가</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 블록 편집 모달 -->
+<div id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <h3>과목 편집</h3>
+    <label>과목 선택</label>
+    <div class="subj-tags" id="modal-subj-tags"></div>
+    <label>직접 입력</label>
+    <input type="text" id="modal-subj" placeholder="과목명">
+    <label>시간</label>
+    <input type="text" id="modal-time" placeholder="예: 14:30~17:00" onkeydown="if(event.key==='Enter')confirmModal()">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">취소</button>
+      <button class="modal-confirm" onclick="confirmModal()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL = "https://gbjlroojsweedundumfi.supabase.co";
+const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
+
+const COLS = [
+  {id:"mon",label:"MON 월요일",color:"#fde8d8"},
+  {id:"tue",label:"TUE 화요일",color:"#d8f0e8"},
+  {id:"wed",label:"WED 수요일",color:"#d8eaf0"},
+  {id:"thu",label:"THU 목요일",color:"#ead8f0"},
+  {id:"fri",label:"FRI 금요일",color:"#f0ead8"},
+  {id:"sat",label:"주말",color:"#dde8d8"},
+];
+const MEMO_LABELS = ["이번 주 목표","잘한 점","아쉬운 점","다음 주 준비"];
+const MONTHS = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const WEEKS = ["1주차","2주차","3주차","4주차","5주차"];
+const DEFAULT_SUBJECTS = ["심리학개론","이상심리학","임상심리학","인지치료","통계학","토익(LC)","토익(RC)","대학원준비"];
+const DEFAULT_PROGRESS = [
+  {name:"심리학개론",color:"#fde8d8",units:[{t:"1장. 심리학이란",d:"정의,역사",s:"미완료",dt:""},{t:"2장. 생물심리학",d:"뇌와 행동",s:"미완료",dt:""},{t:"3장. 감각과 지각",d:"감각,지각 원리",s:"미완료",dt:""},{t:"4장. 의식",d:"수면,꿈",s:"미완료",dt:""},{t:"5장. 학습",d:"조건형성",s:"미완료",dt:""},{t:"6장. 기억",d:"기억,망각",s:"미완료",dt:""},{t:"7장. 인지",d:"사고,언어",s:"미완료",dt:""},{t:"8장. 동기와 정서",d:"동기이론",s:"미완료",dt:""},{t:"9장. 발달심리",d:"인지,사회발달",s:"미완료",dt:""},{t:"10장. 성격",d:"성격이론",s:"미완료",dt:""},{t:"11장. 사회심리",d:"태도,편견",s:"미완료",dt:""},{t:"12장. 심리검사",d:"지능,성격검사",s:"미완료",dt:""},{t:"13장. 이상심리",d:"DSM 분류",s:"미완료",dt:""},{t:"14장. 치료",d:"심리치료",s:"미완료",dt:""},{t:"15장. 건강심리",d:"스트레스,건강",s:"미완료",dt:""}]},
+  {name:"이상심리학",color:"#d8f0e8",units:[{t:"1장. 이상행동의 이해",d:"정의,역사",s:"미완료",dt:""},{t:"2장. 불안장애",d:"공황,GAD",s:"미완료",dt:""},{t:"3장. 강박장애",d:"OCD",s:"미완료",dt:""},{t:"4장. 외상장애",d:"PTSD",s:"미완료",dt:""},{t:"5장. 우울장애",d:"주요우울",s:"미완료",dt:""},{t:"6장. 양극성장애",d:"조증",s:"미완료",dt:""},{t:"7장. 정신증",d:"조현병",s:"미완료",dt:""},{t:"8장. 신체증상장애",d:"전환장애",s:"미완료",dt:""},{t:"9장. 해리장애",d:"DID",s:"미완료",dt:""},{t:"10장. 섭식장애",d:"거식,폭식",s:"미완료",dt:""},{t:"11장. 성격장애",d:"A/B/C군",s:"미완료",dt:""},{t:"12장. 물질관련장애",d:"알코올,약물",s:"미완료",dt:""},{t:"13장. 신경발달장애",d:"ADHD,자폐",s:"미완료",dt:""}]},
+  {name:"임상심리학",color:"#ead8f0",units:[{t:"1장. 임상심리학 개관",d:"역할,역사",s:"미완료",dt:""},{t:"2장. 심리평가",d:"면담,관찰",s:"미완료",dt:""},{t:"3장. 심리검사 I",d:"지능,MMPI",s:"미완료",dt:""},{t:"4장. 심리검사 II",d:"투사검사",s:"미완료",dt:""},{t:"5장. 심리치료 I",d:"정신분석,CBT",s:"미완료",dt:""},{t:"6장. 심리치료 II",d:"인본주의",s:"미완료",dt:""},{t:"7장. 아동 임상",d:"아동평가",s:"미완료",dt:""},{t:"8장. 건강심리",d:"의료장면",s:"미완료",dt:""},{t:"9장. 법정심리",d:"형사,민사",s:"미완료",dt:""},{t:"10장. 지역사회",d:"예방,개입",s:"미완료",dt:""}]},
+  {name:"인지치료",color:"#d8eaf0",units:[{t:"1장. 인지치료 기초",d:"Beck 모델",s:"미완료",dt:""},{t:"2장. 자동적 사고",d:"확인,수정",s:"미완료",dt:""},{t:"3장. 인지적 오류",d:"종류,수정법",s:"미완료",dt:""},{t:"4장. 핵심신념",d:"스키마",s:"미완료",dt:""},{t:"5장. 행동실험",d:"인지행동기법",s:"미완료",dt:""},{t:"6장. 우울 인지치료",d:"우울모델",s:"미완료",dt:""},{t:"7장. 불안 인지치료",d:"불안모델",s:"미완료",dt:""},{t:"8장. 사례개념화",d:"실습적용",s:"미완료",dt:""}]},
+  {name:"통계학",color:"#f0ead8",units:[{t:"1장. 기술통계",d:"평균,분산",s:"미완료",dt:""},{t:"2장. 확률분포",d:"정규분포",s:"미완료",dt:""},{t:"3장. 추론통계",d:"가설검정",s:"미완료",dt:""},{t:"4장. t검정",d:"독립,대응",s:"미완료",dt:""},{t:"5장. 분산분석",d:"ANOVA",s:"미완료",dt:""},{t:"6장. 상관분석",d:"피어슨",s:"미완료",dt:""},{t:"7장. 회귀분석",d:"단순,다중",s:"미완료",dt:""},{t:"8장. 비모수통계",d:"카이제곱",s:"미완료",dt:""}]},
+  {name:"토익(LC)",color:"#dde8d8",units:[{t:"Part 1. 사진묘사",d:"인물/사물",s:"미완료",dt:""},{t:"Part 2. 질의응답",d:"의문문",s:"미완료",dt:""},{t:"Part 3. 짧은 대화",d:"대화유형",s:"미완료",dt:""},{t:"Part 4. 담화문",d:"공지/안내",s:"미완료",dt:""}]},
+  {name:"토익(RC)",color:"#e8f0e8",units:[{t:"Part 5. 단문공란",d:"문법,어휘",s:"미완료",dt:""},{t:"Part 6. 장문공란",d:"문맥파악",s:"미완료",dt:""},{t:"Part 7. 단일지문",d:"이메일,공고",s:"미완료",dt:""},{t:"Part 7. 복수지문",d:"이중지문",s:"미완료",dt:""}]},
+  {name:"대학원준비",color:"#f0e8f0",units:[{t:"연구계획서",d:"주제,작성",s:"미완료",dt:""},{t:"영어 논문 읽기",d:"초록해석",s:"미완료",dt:""},{t:"면접 준비",d:"예상질문",s:"미완료",dt:""},{t:"대학원 정보 수집",d:"리서치",s:"미완료",dt:""},{t:"스터디 문제 제작",d:"기출문제",s:"미완료",dt:""}]},
+];
+
+// 상태
+let userId = "";
+let curMonth = "5월";
+let curWeek = "1주차";
+let plannerData = {}; // {mon:{date,studyHours,blocks:[{subject,time,tasks:[{text,done}]}],memo}, ...weekMemo:[]}
+let subjects = [...DEFAULT_SUBJECTS];
+let progress = JSON.parse(JSON.stringify(DEFAULT_PROGRESS));
+let editTarget = null; // {colId, bi}
+let expandedSubj = null;
+
+function weekKey() { return curMonth + "_" + curWeek; }
+
+// ── DB
+async function dbGet(key) {
+  try {
+    const r = await fetch(SB_URL+"/rest/v1/planner_data?user_id=eq."+encodeURIComponent(userId)+"&week_key=eq."+encodeURIComponent(key)+"&select=data", {
+      headers: {apikey: SB_KEY, Authorization: "Bearer "+SB_KEY}
+    });
+    const rows = await r.json();
+    return rows && rows[0] ? rows[0].data : null;
+  } catch(e) { return null; }
+}
+async function dbSet(key, data) {
+  try {
+    const r = await fetch(SB_URL+"/rest/v1/planner_data", {
+      method: "POST",
+      headers: {apikey: SB_KEY, Authorization: "Bearer "+SB_KEY, "Content-Type":"application/json", Prefer:"resolution=merge-duplicates"},
+      body: JSON.stringify({user_id: userId, week_key: key, data: data, updated_at: new Date().toISOString()})
+    });
+    return r.ok || r.status === 201;
+  } catch(e) { return false; }
+}
+
+// ── 초기화
+function initPlannerData() {
+  const d = {weekMemo: MEMO_LABELS.map(()=>"")};
+  COLS.forEach(col => {
+    d[col.id] = {date:"", studyHours:"", memo:"", blocks:[{subject:"",time:"",tasks:[{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false}]}]};
+  });
+  return d;
+}
+
+function mergePlannerData(saved) {
+  const base = initPlannerData();
+  if (!saved) return base;
+  COLS.forEach(col => {
+    if (!saved[col.id]) return;
+    const s = saved[col.id];
+    base[col.id] = {
+      date: s.date || "",
+      studyHours: s.studyHours || "",
+      memo: s.memo || "",
+      blocks: Array.isArray(s.blocks) && s.blocks.length ? s.blocks.map(b => ({
+        subject: b.subject || "",
+        time: b.time || "",
+        tasks: Array.isArray(b.tasks) && b.tasks.length ? b.tasks.map(t => ({
+          text: String(t.text || ""),
+          done: !!t.done
+        })) : [{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false}]
+      })) : base[col.id].blocks
+    };
+  });
+  base.weekMemo = Array.isArray(saved.weekMemo) ? saved.weekMemo : MEMO_LABELS.map(()=>"");
+  return base;
+}
+
+// ── 로그인
+async function doLogin() {
+  const v = document.getElementById('login-input').value.trim();
+  if (!v) return;
+  userId = v;
+  document.getElementById('user-label').textContent = "("+v+")";
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  setStatus("⏳ 불러오는 중...");
+  const [savedPlanner, savedSubj, savedProgress] = await Promise.all([
+    dbGet(weekKey()), dbGet("__subjects__"), dbGet("__progress__")
+  ]);
+  plannerData = mergePlannerData(savedPlanner);
+  if (savedSubj && savedSubj.list) subjects = savedSubj.list;
+  if (savedProgress && savedProgress.data) progress = savedProgress.data;
+
+  document.getElementById('month-sel').value = curMonth;
+  setStatus("");
+  renderPlanner();
+  renderSubjects();
+  renderProgress();
+}
+
+// ── 저장
+async function saveAll() {
+  setStatus("💾 저장 중...");
+
+  // plannerData를 그대로 읽어서 저장
+  const data = collectPlannerData();
+  const ok = await dbSet(weekKey(), data);
+
+  if (ok) {
+    plannerData = data;
+    setStatus("✅ 저장됨");
+  } else {
+    setStatus("❌ 저장 실패");
+  }
+  setTimeout(()=>setStatus(""),3000);
+}
+
+function collectPlannerData() {
+  // DOM에서 직접 읽기
+  const data = {weekMemo: []};
+
+  COLS.forEach(col => {
+    const colEl = document.getElementById("col-"+col.id);
+    if (!colEl) { data[col.id] = plannerData[col.id] || initPlannerData()[col.id]; return; }
+
+    const dateEl = colEl.querySelector(".col-date");
+    const hoursEl = colEl.querySelector(".col-hours");
+    const memoEl = colEl.querySelector(".col-memo");
+    const blocks = [];
+
+    colEl.querySelectorAll(".block-wrap").forEach(bw => {
+      const subjEl = bw.querySelector(".block-subj-val");
+      const timeEl = bw.querySelector(".block-time-val");
+      const tasks = [];
+      bw.querySelectorAll(".task-item").forEach(ti => {
+        const cb = ti.querySelector("input[type=checkbox]");
+        const txt = ti.querySelector("input[type=text]");
+        tasks.push({text: txt ? txt.value : "", done: cb ? cb.checked : false});
+      });
+      blocks.push({
+        subject: subjEl ? subjEl.textContent : "",
+        time: timeEl ? timeEl.textContent : "",
+        tasks: tasks
+      });
+    });
+
+    data[col.id] = {
+      date: dateEl ? dateEl.value : "",
+      studyHours: hoursEl ? hoursEl.value : "",
+      memo: memoEl ? memoEl.value : "",
+      blocks: blocks
+    };
+  });
+
+  // 주간 메모
+  MEMO_LABELS.forEach((_, i) => {
+    const el = document.getElementById("week-memo-"+i);
+    data.weekMemo.push(el ? el.value : "");
+  });
+
+  return data;
+}
+
+async function saveProgress() {
+  await dbSet("__progress__", {data: progress});
+}
+async function saveSubjects() {
+  await dbSet("__subjects__", {list: subjects});
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+// ── 탭 전환
+function showTab(name) {
+  ['planner','progress','stats','subjects'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn,i) => {
+    btn.classList.toggle('active', ['planner','progress','stats','subjects'][i]===name);
+  });
+  document.getElementById('save-btn').style.display = name==='planner' ? '' : 'none';
+  document.getElementById('print-btn').style.display = name==='planner' ? '' : 'none';
+  if (name==='stats') renderStats();
+}
+
+// ── 월/주 변경
+function onWeekChange() {
+  curMonth = document.getElementById('month-sel').value;
+  loadAndRender();
+}
+async function selectWeek(w, btn) {
+  curWeek = w;
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadAndRender();
+}
+async function loadAndRender() {
+  setStatus("⏳ 불러오는 중...");
+  const saved = await dbGet(weekKey());
+  plannerData = mergePlannerData(saved);
+  setStatus("");
+  renderPlanner();
+}
+
+// ── 플래너 렌더링
+function renderPlanner() {
+  const wrap = document.getElementById('planner-wrap');
+  let html = '<table class="planner-table">';
+
+  // 주차 제목
+  html += '<tr class="week-title-row"><td colspan="'+COLS.length+'">'+curMonth+' '+curWeek+'</td></tr>';
+
+  // 날짜 행
+  html += '<tr class="date-row">';
+  COLS.forEach(col => {
+    const d = plannerData[col.id] || {};
+    html += '<td><input class="col-date" placeholder="날짜 (예: 5/25)" value="'+esc(d.date||'')+'"></td>';
+  });
+  html += '</tr>';
+
+  // 요일 헤더
+  html += '<tr class="day-header-row">';
+  COLS.forEach(col => {
+    const d = plannerData[col.id] || {};
+    const pct = calcPct(d.blocks||[]);
+    html += '<th style="background:'+col.color+'">';
+    html += col.label;
+    if (pct!==null) html += '<br><span style="font-size:9px;font-weight:400;color:'+(pct>=80?'#4a7c59':pct>=50?'#5b8db8':'#888')+'">'+pct+'% 완료</span>';
+    html += '</th>';
+  });
+  html += '</tr>';
+
+  // 공부시간
+  html += '<tr class="hours-row">';
+  COLS.forEach(col => {
+    const d = plannerData[col.id] || {};
+    html += '<td style="background:'+col.color+'"><span style="color:#888">공부시간(h):</span><input class="col-hours" placeholder="3.5" value="'+esc(d.studyHours||'')+'"></td>';
+  });
+  html += '</tr>';
+
+  // 블록들
+  const maxBlocks = Math.max(...COLS.map(col => (plannerData[col.id]?.blocks||[]).length));
+  for (let bi=0; bi<maxBlocks; bi++) {
+    // 과목 헤더
+    html += '<tr class="subj-row">';
+    COLS.forEach(col => {
+      const blocks = plannerData[col.id]?.blocks||[];
+      const b = blocks[bi];
+      html += '<td style="background:'+col.color+'" id="col-'+col.id+'">';
+      if (b) {
+        html += '<span class="subj-name" onclick="openModal(\''+col.id+'\','+bi+')">● <span class="block-subj-val">'+esc(b.subject||'')+'</span></span>';
+        html += '<span class="subj-time block-time-val">'+esc(b.time||'')+'</span>';
+        html += ' <span style="font-size:9px;color:#ccc;cursor:pointer" onclick="openModal(\''+col.id+'\','+bi+'\')">✏️</span>';
+        if (blocks.length>1) html += ' <span style="font-size:9px;color:#ddd;cursor:pointer" onclick="removeBlock(\''+col.id+'\','+bi+')">✕</span>';
+      }
+      html += '</td>';
+    });
+    html += '</tr>';
+
+    // 태스크들
+    const maxTasks = Math.max(...COLS.map(col => (plannerData[col.id]?.blocks?.[bi]?.tasks||[]).length));
+    for (let ti=0; ti<maxTasks; ti++) {
+      html += '<tr class="task-row">';
+      COLS.forEach(col => {
+        const blocks = plannerData[col.id]?.blocks||[];
+        const b = blocks[bi];
+        const t = b?.tasks?.[ti];
+        if (!b || !t) { html += '<td class="empty"></td>'; return; }
+        html += '<td><div class="task-cell task-item">';
+        html += '<input type="checkbox"'+(t.done?' checked':'')+'>';
+        html += '<input type="text" class="'+(t.done?'done':'')+'" placeholder="'+(ti===0?'할 일 입력':'')+'..." value="'+esc(t.text||'')+'">';
+        html += '<span style="font-size:9px;color:#ddd;cursor:pointer" onclick="removeTask(\''+col.id+'\','+bi+','+ti+')">✕</span>';
+        html += '</div></td>';
+      });
+      html += '</tr>';
+    }
+    // 항목 추가 버튼 행
+    html += '<tr><td colspan="'+COLS.length+'" style="padding:1px 4px">';
+    html += '<div style="display:flex;gap:4px">';
+    COLS.forEach(col => {
+      const blocks = plannerData[col.id]?.blocks||[];
+      if (blocks[bi]) {
+        html += '<button class="add-task-btn" onclick="addTask(\''+col.id+'\','+bi+')" style="flex:1">+ 항목</button>';
+      } else {
+        html += '<span style="flex:1"></span>';
+      }
+    });
+    html += '</div></td></tr>';
+  }
+
+  // 블록 추가
+  html += '<tr class="add-block-row"><td colspan="'+COLS.length+'">';
+  html += '<div style="display:flex;gap:4px;padding:3px">';
+  COLS.forEach(col => {
+    html += '<button class="add-block-btn" style="flex:1" onclick="addBlock(\''+col.id+'\')">+ 과목 추가</button>';
+  });
+  html += '</div></td></tr>';
+
+  // 메모
+  html += '<tr class="memo-row">';
+  COLS.forEach(col => {
+    const d = plannerData[col.id]||{};
+    html += '<td><span class="memo-label">📌 메모</span><textarea class="col-memo" placeholder="자유 메모..." rows="2">'+esc(d.memo||'')+'</textarea></td>';
+  });
+  html += '</tr>';
+
+  html += '</table>';
+
+  // 주간 메모
+  html += '<table class="week-memo-table"><tr class="week-memo-header"><td colspan="4">📝 주간 메모</td></tr><tr>';
+  MEMO_LABELS.forEach(l => html += '<th>'+l+'</th>');
+  html += '</tr><tr>';
+  MEMO_LABELS.forEach((l,i) => {
+    html += '<td class="memo-cell"><textarea id="week-memo-'+i+'" placeholder="입력..." rows="3">'+esc(plannerData.weekMemo?.[i]||'')+'</textarea></td>';
+  });
+  html += '</tr></table>';
+
+  // col id 설정을 위해 각 td에 id 부여 - 블록 wrapping
+  wrap.innerHTML = html;
+
+  // col-id를 각 컬럼에 제대로 설정 (블록 구조 재설정)
+  rebuildColIds();
+}
+
+function rebuildColIds() {
+  // 테이블 구조상 col-id를 각 td에 붙이는 대신 block-wrap div 구조로 다시 빌드
+  // 현재 구조를 유지하고 data 속성으로 관리
+}
+
+function calcPct(blocks) {
+  const all = (blocks||[]).flatMap(b=>b.tasks||[]).filter(t=>t.text && t.text.trim());
+  if (!all.length) return null;
+  return Math.round(all.filter(t=>t.done).length/all.length*100);
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── 블록/태스크 조작
+function addBlock(colId) {
+  const col = plannerData[colId] || {blocks:[]};
+  col.blocks.push({subject:"",time:"",tasks:[{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false},{text:"",done:false}]});
+  plannerData[colId] = col;
+  renderPlanner();
+}
+function removeBlock(colId, bi) {
+  if (plannerData[colId]?.blocks?.length <= 1) return;
+  plannerData[colId].blocks.splice(bi, 1);
+  renderPlanner();
+}
+function addTask(colId, bi) {
+  if (plannerData[colId]?.blocks?.[bi]) {
+    plannerData[colId].blocks[bi].tasks.push({text:"",done:false});
+    renderPlanner();
+  }
+}
+function removeTask(colId, bi, ti) {
+  const tasks = plannerData[colId]?.blocks?.[bi]?.tasks;
+  if (tasks && tasks.length > 1) {
+    tasks.splice(ti, 1);
+    renderPlanner();
+  }
+}
+
+// ── 모달
+function openModal(colId, bi) {
+  editTarget = {colId, bi};
+  const b = plannerData[colId]?.blocks?.[bi] || {};
+  document.getElementById('modal-subj').value = b.subject || "";
+  document.getElementById('modal-time').value = b.time || "";
+
+  const tagsEl = document.getElementById('modal-subj-tags');
+  tagsEl.innerHTML = subjects.map(s =>
+    '<button class="subj-tag'+(b.subject===s?' selected':'')+'" onclick="selectSubjTag(this,\''+esc(s)+'\')">'+esc(s)+'</button>'
+  ).join('');
+
+  document.getElementById('modal-bg').classList.add('open');
+  document.getElementById('modal-subj').focus();
+}
+function selectSubjTag(el, name) {
+  document.querySelectorAll('.subj-tag').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('modal-subj').value = name;
+}
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  editTarget = null;
+}
+function confirmModal() {
+  if (!editTarget) return;
+  const {colId, bi} = editTarget;
+  if (plannerData[colId]?.blocks?.[bi]) {
+    plannerData[colId].blocks[bi].subject = document.getElementById('modal-subj').value.trim();
+    plannerData[colId].blocks[bi].time = document.getElementById('modal-time').value.trim();
+  }
+  closeModal();
+  renderPlanner();
+}
+
+// ── 진도관리
+function renderProgress() {
+  const wrap = document.getElementById('progress-wrap');
+  let html = '<div class="progress-summary">';
+  progress.forEach((subj,si) => {
+    const total=subj.units.length, done=subj.units.filter(u=>u.s==="완료").length;
+    const pct=total?Math.round(done/total*100):0;
+    const color=pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838";
+    html += '<div class="progress-card" onclick="toggleSubj('+si+')">';
+    html += '<div class="name">'+esc(subj.name)+'</div>';
+    html += '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>';
+    html += '<div class="pct">'+done+'/'+total+' · '+pct+'%</div></div>';
+  });
+  html += '</div>';
+
+  progress.forEach((subj,si) => {
+    const total=subj.units.length, done=subj.units.filter(u=>u.s==="완료").length;
+    const pct=total?Math.round(done/total*100):0;
+    html += '<div class="subj-detail">';
+    html += '<div class="subj-detail-header" style="background:'+subj.color+'" onclick="toggleSubj('+si+')">';
+    html += '<span class="name">▶ '+esc(subj.name)+'</span>';
+    html += '<span style="font-size:10px;color:#4a7c59;font-weight:700">완료 '+done+'</span> ';
+    html += '<span style="font-size:11px;font-weight:700">'+pct+'%</span></div>';
+
+    if (expandedSubj===si) {
+      html += '<table class="unit-table"><tr><th>단원명</th><th>세부내용</th><th>상태</th><th>완료일</th><th></th></tr>';
+      subj.units.forEach((u,ui) => {
+        html += '<tr style="background:'+(ui%2===0?'#fff':'#fafafa')+'">';
+        html += '<td>'+esc(u.t)+'</td><td style="color:#888">'+esc(u.d)+'</td>';
+        html += '<td><select onchange="updateUnit('+si+','+ui+',this.value)" style="color:'+getStatusColor(u.s)+'"><option'+(u.s==="미완료"?' selected':'')+'>미완료</option><option'+(u.s==="진행중"?' selected':'')+'>진행중</option><option'+(u.s==="완료"?' selected':'')+'>완료</option></select></td>';
+        html += '<td style="color:#aaa;font-size:10px">'+esc(u.dt||'')+'</td>';
+        html += '<td><span style="cursor:pointer;color:#ddd" onclick="removeUnit('+si+','+ui+')">✕</span></td></tr>';
+      });
+      html += '</table>';
+      html += '<div class="add-unit-row">';
+      html += '<input type="text" id="unit-t-'+si+'" placeholder="단원명">';
+      html += '<input type="text" id="unit-d-'+si+'" placeholder="세부내용">';
+      html += '<button onclick="addUnit('+si+')">추가</button></div>';
+    }
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+}
+function getStatusColor(s) { return s==="완료"?"#4a7c59":s==="진행중"?"#5b8db8":"#aaa"; }
+function toggleSubj(si) { expandedSubj=expandedSubj===si?null:si; renderProgress(); }
+async function updateUnit(si,ui,status) {
+  progress[si].units[ui].s = status;
+  progress[si].units[ui].dt = status==="완료"?new Date().toLocaleDateString("ko-KR"):"";
+  await saveProgress();
+  renderProgress();
+}
+async function removeUnit(si,ui) {
+  progress[si].units.splice(ui,1);
+  await saveProgress();
+  renderProgress();
+}
+async function addUnit(si) {
+  const t=document.getElementById('unit-t-'+si)?.value.trim();
+  const d=document.getElementById('unit-d-'+si)?.value.trim();
+  if (!t) return;
+  progress[si].units.push({t,d:d||"",s:"미완료",dt:""});
+  await saveProgress();
+  renderProgress();
+}
+
+// ── 과목 관리
+function renderSubjects() {
+  const tbody = document.getElementById('subjects-tbody');
+  tbody.innerHTML = subjects.map((s,i) =>
+    '<tr style="background:'+(i%2===0?'#fff':'#fafafa')+'">' +
+    '<td style="border:1px solid #bbb;padding:5px 10px;font-size:12px">'+esc(s)+'</td>' +
+    '<td style="border:1px solid #bbb;padding:5px 6px;text-align:center"><span style="cursor:pointer;color:#ccc;font-size:14px" onclick="removeSubject('+i+')">✕</span></td></tr>'
+  ).join('');
+}
+async function addSubject() {
+  const v=document.getElementById('new-subj-input').value.trim();
+  if (!v) return;
+  subjects.push(v);
+  document.getElementById('new-subj-input').value='';
+  await saveSubjects();
+  renderSubjects();
+}
+async function removeSubject(i) {
+  subjects.splice(i,1);
+  await saveSubjects();
+  renderSubjects();
+}
+
+// ── 성취통계
+async function renderStats() {
+  const wrap = document.getElementById('stats-wrap');
+  wrap.innerHTML = '<div class="stats-month-select"><span style="font-weight:700;font-size:13px">📈 월별 성취 통계</span><select id="stats-month" onchange="renderStats()">'+MONTHS.map(m=>'<option'+(m===curMonth?' selected':'')+'>'+m+'</option>').join('')+'</select><span id="stats-loading" style="font-size:11px;color:#888"></span></div><div id="stats-content">⏳ 불러오는 중...</div>';
+
+  const sm = document.getElementById('stats-month').value;
+  document.getElementById('stats-loading').textContent = "⏳";
+
+  const allData = {};
+  await Promise.all(WEEKS.map(async w => {
+    const d = await dbGet(sm+"_"+w);
+    allData[w] = mergePlannerData(d);
+  }));
+  document.getElementById('stats-loading').textContent = "";
+
+  // 월 요약
+  const monthPcts = WEEKS.map(w => calcPct(COLS.flatMap(col => allData[w]?.[col.id]?.blocks||[]))).filter(p=>p!==null);
+  const monthHours = WEEKS.reduce((sum,w) => sum + COLS.reduce((s,col) => { const h=parseFloat(allData[w]?.[col.id]?.studyHours||0); return s+(isNaN(h)?0:h); },0), 0);
+  const avgPct = monthPcts.length ? Math.round(monthPcts.reduce((a,b)=>a+b,0)/monthPcts.length) : null;
+
+  let html = '<div class="summary-cards">';
+  [{label:"월 평균 완료율",val:avgPct!==null?avgPct+"%":"데이터 없음",color:"#4a7c59"},{label:"총 공부시간",val:monthHours.toFixed(1)+"h",color:"#5b8db8"},{label:"기록된 주차",val:monthPcts.length+"주",color:"#e8a838"},{label:"주당 평균",val:monthPcts.length?(monthHours/monthPcts.length).toFixed(1)+"h":"—",color:"#888"}].forEach(item => {
+    html += '<div class="summary-card"><div class="label">'+item.label+'</div><div class="val" style="color:'+item.color+'">'+item.val+'</div></div>';
+  });
+  html += '</div>';
+
+  // 주차별 테이블
+  html += '<table class="stats-table"><tr><th>주차</th>';
+  COLS.forEach(col => html += '<th style="background:'+col.color+'">'+col.label.split(' ')[0]+'</th>');
+  html += '<th>주간완료율</th><th>공부시간</th></tr>';
+  WEEKS.forEach(w => {
+    const wData = allData[w];
+    const wPct = calcPct(COLS.flatMap(col => wData?.[col.id]?.blocks||[]));
+    const wHours = COLS.reduce((s,col)=>{ const h=parseFloat(wData?.[col.id]?.studyHours||0); return s+(isNaN(h)?0:h); },0);
+    html += '<tr><td style="font-weight:700">'+w+'</td>';
+    COLS.forEach(col => {
+      const tasks = (wData?.[col.id]?.blocks||[]).flatMap(b=>b.tasks||[]).filter(t=>t.text&&t.text.trim());
+      const done = tasks.filter(t=>t.done).length;
+      const pct = tasks.length?Math.round(done/tasks.length*100):null;
+      const h = parseFloat(wData?.[col.id]?.studyHours||0);
+      html += '<td style="text-align:center">';
+      if (pct!==null) {
+        const color=pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838";
+        html += '<div style="background:#eee;height:4px;width:50px;margin:0 auto 2px"><div style="background:'+color+';width:'+pct+'%;height:100%"></div></div>';
+        html += '<span style="font-weight:700;color:'+color+'">'+pct+'%</span>';
+        if (h>0) html += '<br><span style="font-size:9px;color:#aaa">'+h+'h</span>';
+      } else {
+        html += '<span style="color:#ddd">—</span>';
+      }
+      html += '</td>';
+    });
+    const wColor = wPct>=80?"#4a7c59":wPct>=50?"#5b8db8":"#e8a838";
+    html += '<td style="text-align:center;font-weight:700;background:#f5f5f5">'+(wPct!==null?'<span style="color:'+wColor+'">'+wPct+'%</span>':'<span style="color:#ddd">—</span>')+'</td>';
+    html += '<td style="text-align:center;font-weight:700;background:#f5f5f5">'+(wHours>0?wHours.toFixed(1)+'h':'<span style="color:#ddd">—</span>')+'</td></tr>';
+  });
+  html += '</table>';
+
+  // 과목별 진도
+  html += '<table class="stats-table" style="margin-top:8px"><tr><th colspan="4" style="background:#333;color:#fff;text-align:left;padding:5px 8px">📚 과목별 진도율</th></tr>';
+  html += '<tr><th>과목명</th><th>전체</th><th>완료</th><th>진도율</th></tr>';
+  progress.forEach(subj => {
+    const total=subj.units.length, done=subj.units.filter(u=>u.s==="완료").length;
+    const pct=total?Math.round(done/total*100):0;
+    const color=pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838";
+    html += '<tr><td>'+esc(subj.name)+'</td><td style="text-align:center">'+total+'</td><td style="text-align:center;color:#4a7c59;font-weight:700">'+done+'</td>';
+    html += '<td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;background:#eee;height:6px;border-radius:3px;overflow:hidden"><div style="background:'+color+';width:'+pct+'%;height:100%"></div></div><span style="font-weight:700;color:'+color+'">'+pct+'%</span></div></td></tr>';
+  });
+  html += '</table>';
+
+  document.getElementById('stats-content').innerHTML = html;
+}
+
+// 초기 렌더
+document.getElementById('login-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
