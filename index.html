@@ -6,25 +6,22 @@
     <title>📖 스터디 플래너</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 기존 플래너의 스타일을 그대로 유지합니다 */
+        /* 기존 플래너의 UI/스타일을 완벽하게 유지합니다 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 10px; }
         #topbar { background: #333; color: #fff; padding: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; margin-bottom: 10px; }
         .nav-buttons button { background: #555; color: #fff; border: none; padding: 6px 12px; margin-right: 5px; cursor: pointer; border-radius: 3px; font-weight: bold; }
         .nav-buttons button.active { background: #fff; color: #333; }
         
-        /* 상단 버튼 영역 스타일 고정 */
         .action-buttons { display: flex; gap: 8px; align-items: center; }
         .btn-action { border: none; padding: 6px 12px; cursor: pointer; border-radius: 3px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 4px; }
         .btn-subject { background-color: #9b2c2c; }
         .btn-save { background-color: #2f855a; }
         .btn-print { background-color: #4a5568; }
         
-        /* 상태 표시 배지 */
         #status-indicator { font-size: 13px; font-weight: bold; color: #fc8181; }
         #status-indicator.success { color: #68d391; }
 
-        /* 달력 및 메모 테이블 스타일 */
         .week-selector { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
         .week-selector select, .week-selector button { padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; background: #fff; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .week-selector button.active { background: #333; color: #fff; }
@@ -33,24 +30,32 @@
         .days-row { display: flex; gap: 10px; overflow-x: auto; }
         .day-column { flex: 1; min-width: 180px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; padding: 8px; }
         .day-header { text-align: center; font-weight: bold; padding: 6px; border-radius: 3px; margin-bottom: 8px; font-size: 14px; }
-        .day-header.mon { background: #ffebd8; color: #c05621; }
-        .day-header.tue { background: #e6fffa; color: #1d4ed8; }
-        .info-line { font-size: 12px; color: #666; margin-bottom: 6px; }
         
+        /* 요일별 고유 색상 */
+        .day-header.mon { background: #ffebd8; color: #c05621; }
+        .day-header.tue { background: #e6fffa; color: #0d9488; }
+        .day-header.wed { background: #e0f2fe; color: #0369a1; }
+        .day-header.thu { background: #f3e8ff; color: #6b21a8; }
+        .day-header.fri { background: #fae8ff; color: #86198f; }
+        .day-header.sat { background: #eff6ff; color: #1d4ed8; }
+        .day-header.sun { background: #fef2f2; color: #b91c1c; }
+        
+        .info-line { font-size: 12px; color: #666; margin-bottom: 6px; }
         .todo-list { display: flex; flex-direction: column; gap: 4px; }
         .todo-item { display: flex; align-items: center; gap: 4px; background: #fff; padding: 4px; border: 1px solid #e2e8f0; border-radius: 3px; }
         .todo-item input[type="text"] { flex: 1; border: none; font-size: 13px; outline: none; }
         .btn-del { background: none; border: none; color: #cbd5e0; cursor: pointer; font-size: 12px; }
         .btn-del:hover { color: #e53e3e; }
-        .btn-add-item { background: none; border: 1px dashed #cbd5e0; color: #718096; padding: 4px; font-size: 12px; cursor: pointer; border-radius: 3px; text-align: center; margin-top: 4px; }
+        .btn-add-item { width: 100%; background: none; border: 1px dashed #cbd5e0; color: #718096; padding: 4px; font-size: 12px; cursor: pointer; border-radius: 3px; text-align: center; margin-top: 4px; }
         
         .memo-area { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 6px; }
         .memo-area label { font-size: 12px; font-weight: bold; color: #e53e3e; display: flex; align-items: center; gap: 2px; }
         .memo-area textarea { width: 100%; height: 50px; border: 1px solid #e2e8f0; border-radius: 3px; padding: 4px; font-size: 12px; resize: none; margin-top: 2px; }
 
         .weekly-memo { margin-top: 10px; background: #fff; border: 2px solid #333; border-radius: 4px; padding: 10px; }
-        .weekly-memo-title { font-weight: bold; font-size: 14px; background: #333; color: #fff; padding: 6px; border-radius: 3px; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+        .weekly-memo-title { font-weight: bold; font-size: 14px; background: #333; color: #fff; padding: 6px; border-radius: 3px; margin-bottom: 8px; }
         .weekly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        @media (max-width: 600px) { .weekly-grid { grid-template-columns: repeat(2, 1fr); } }
         .weekly-box { border: 1px solid #ccc; border-radius: 3px; padding: 6px; }
         .weekly-box label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
         .weekly-box textarea { width: 100%; height: 60px; border: 1px solid #e2e8f0; border-radius: 3px; padding: 4px; font-size: 12px; resize: none; }
@@ -78,7 +83,7 @@
         <option value="5">5월</option>
         <option value="6">6월</option>
     </select>
-    <button class="active">1주차</button>
+    <button>1주차</button>
     <button>2주차</button>
     <button>3주차</button>
     <button class="active">4주차</button>
@@ -91,28 +96,60 @@
             <div class="day-header mon">25 MON 월요일</div>
             <div class="info-line">공부시간(h): 3.5</div>
             <div class="todo-list" id="todo-mon">
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del">×</button></div>
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="..."> <button class="btn-del">×</button></div>
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
             </div>
             <button class="btn-add-item" onclick="addTodo('mon')">+ 항목</button>
-            <div class="memo-area">
-                <label>📌 메모</label>
-                <textarea id="memo-mon">자유 메모...</textarea>
-            </div>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-mon">자유 메모...</textarea></div>
         </div>
 
         <div class="day-column">
             <div class="day-header tue">26 TUE 화요일</div>
             <div class="info-line">공부시간(h): 3.5</div>
             <div class="todo-list" id="todo-tue">
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del">×</button></div>
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="..."> <button class="btn-del">×</button></div>
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
             </div>
             <button class="btn-add-item" onclick="addTodo('tue')">+ 항목</button>
-            <div class="memo-area">
-                <label>📌 메모</label>
-                <textarea id="memo-tue">자유 메모...</textarea>
-            </div>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-tue">자유 메모...</textarea></div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header wed">27 WED 수요일</div>
+            <div class="info-line">공부시간(h): 0.0</div>
+            <div class="todo-list" id="todo-wed"></div>
+            <button class="btn-add-item" onclick="addTodo('wed')">+ 항목</button>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-wed">자유 메모...</textarea></div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header thu">28 THU 목요일</div>
+            <div class="info-line">공부시간(h): 0.0</div>
+            <div class="todo-list" id="todo-thu"></div>
+            <button class="btn-add-item" onclick="addTodo('thu')">+ 항목</button>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-thu">자유 메모...</textarea></div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header fri">29 FRI 금요일</div>
+            <div class="info-line">공부시간(h): 0.0</div>
+            <div class="todo-list" id="todo-fri"></div>
+            <button class="btn-add-item" onclick="addTodo('fri')">+ 항목</button>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-fri">자유 메모...</textarea></div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header sat">30 SAT 토요일</div>
+            <div class="info-line">공부시간(h): 0.0</div>
+            <div class="todo-list" id="todo-sat"></div>
+            <button class="btn-add-item" onclick="addTodo('sat')">+ 항목</button>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-sat">자유 메모...</textarea></div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header sun">31 SUN 일요일</div>
+            <div class="info-line">공부시간(h): 0.0</div>
+            <div class="todo-list" id="todo-sun"></div>
+            <button class="btn-add-item" onclick="addTodo('sun')">+ 항목</button>
+            <div class="memo-area"><label>📌 메모</label><textarea id="memo-sun">자유 메모...</textarea></div>
         </div>
     </div>
 </div>
@@ -128,48 +165,73 @@
 </div>
 
 <script>
-    // Supabase 접속 정보 설정 완벽 적용
     const SB_URL = "https://gbjlroojsweedundumfi.supabase.co"; 
     const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
     
     const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
-    // 입력 상태 텍스트 변경 함수
     function setStatus(text, isSuccess = false) {
         const el = document.getElementById('status-indicator');
         el.innerText = text;
-        if (isSuccess) {
-            el.className = 'success';
-        } else {
-            el.className = '';
-        }
+        el.className = isSuccess ? 'success' : '';
     }
 
-    // 화면의 모든 입력 데이터를 수집하는 함수
+    // [전체 요일 데이터 수집 및 반영 자동화 처리]
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
     function captureAllData() {
-        return {
-            memoMon: document.getElementById('memo-mon').value,
-            memoTue: document.getElementById('memo-tue').value,
+        const data = {
             weekTarget: document.getElementById('week-target').value,
             weekGood: document.getElementById('week-good').value,
             weekBad: document.getElementById('week-bad').value,
             weekNext: document.getElementById('week-next').value,
+            memos: {},
+            todos: {},
             updatedAt: new Date().toISOString()
         };
+        
+        days.forEach(day => {
+            data.memos[day] = document.getElementById(`memo-${day}`).value;
+            
+            // 각 요일별 할 일 리스트 수집
+            const todoItems = [];
+            const rows = document.querySelectorAll(`#todo-${day} .todo-item`);
+            rows.forEach(row => {
+                const chk = row.querySelector('input[type="checkbox"]').checked;
+                const txt = row.querySelector('input[type="text"]').value;
+                todoItems.push({ c: chk, t: txt });
+            });
+            data.todos[day] = todoItems;
+        });
+        return data;
     }
 
-    // 화면에 데이터를 뿌려주는 함수
     function applyDataToScreen(data) {
         if(!data) return;
-        if(data.memoMon !== undefined) document.getElementById('memo-mon').value = data.memoMon;
-        if(data.memoTue !== undefined) document.getElementById('memo-tue').value = data.memoTue;
         if(data.weekTarget !== undefined) document.getElementById('week-target').value = data.weekTarget;
         if(data.weekGood !== undefined) document.getElementById('week-good').value = data.weekGood;
         if(data.weekBad !== undefined) document.getElementById('week-bad').value = data.weekBad;
         if(data.weekNext !== undefined) document.getElementById('week-next').value = data.weekNext;
+        
+        days.forEach(day => {
+            if(data.memos && data.memos[day] !== undefined) {
+                document.getElementById(`memo-${day}`).value = data.memos[day];
+            }
+            
+            // 할 일 리스트 화면에 복원
+            if(data.todos && data.todos[day]) {
+                const container = document.getElementById(`todo-${day}`);
+                container.innerHTML = '';
+                data.todos[day].forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'todo-item';
+                    div.innerHTML = `<input type="checkbox" ${item.c ? 'checked' : ''}> <input type="text" value="${item.t}"> <button class="btn-del" onclick="this.parentElement.remove()">×</button>`;
+                    container.appendChild(div);
+                });
+            }
+        });
     }
 
-    // 1. 서버에서 데이터 불러오기 (dbGet)
     async function loadData() {
         setStatus("🔄 동기화 중...");
         try {
@@ -182,15 +244,14 @@
 
             if (error) {
                 if (error.code === 'PGRST116') { 
-                    setStatus("✅ 연결 완료 (기존 데이터 없음)", true);
+                    setStatus("✅ 연결 성공 (데이터 비어있음)", true);
                     return; 
                 }
                 throw error;
             }
 
             if (data && data.content) {
-                const parsed = JSON.parse(data.content);
-                applyDataToScreen(parsed);
+                applyDataToScreen(JSON.parse(data.content));
                 setStatus("// 동기화 성공", true);
             }
         } catch (err) {
@@ -201,13 +262,11 @@
         }
     }
 
-    // 2. 서버에 데이터 저장하기 (dbSet)
     async function saveData() {
         setStatus("💾 저장 중...");
         const currentData = captureAllData();
         const jsonString = JSON.stringify(currentData);
         
-        // 브라우저 로컬 스토리지 안전 백업
         localStorage.setItem('planner_local_backup', jsonString);
 
         try {
@@ -218,13 +277,12 @@
             if (error) throw error;
             setStatus("// 저장 성공", true);
         } catch (err) {
-            console.error("저장 오류:", err);
+            console.error(err);
             setStatus("❌ 저장 실패");
-            alert("서버 저장 실패! Supabase에 'planner_data' 테이블이 생성되어 있는지, RLS(보안)가 꺼져있는지 확인이 필요합니다.");
+            alert("서버 저장 실패! Supabase 사이트 대시보드에서 'planner_data' 테이블을 생성하고 RLS를 해제했는지 확인하세요.");
         }
     }
 
-    // 항목 추가 임시 함수
     function addTodo(day) {
         const container = document.getElementById(`todo-${day}`);
         const div = document.createElement('div');
@@ -233,11 +291,8 @@
         container.appendChild(div);
     }
 
-    function changeMonth() {
-        console.log("월 변경");
-    }
+    function changeMonth() {}
 
-    // 페이지 시작 시 작동
     window.onload = async () => {
         await loadData();
     };
