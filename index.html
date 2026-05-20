@@ -3,69 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>대학원 준비 플래너 (GitHub + Supabase 동기화)</title>
+    <title>📖 스터디 플래너</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f5f6f8; margin: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #4a5568; font-size: 24px; }
-        .status-badge { text-align: center; margin-bottom: 15px; font-size: 14px; color: #4c51bf; font-weight: bold; }
-        .planner-group { border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 15px; background-color: #f8fafc; }
-        .group-title { font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #2d3748; display: flex; align-items: center; }
-        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .task-item { background: white; padding: 10px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .task-header { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
-        .task-desc { font-size: 13px; color: #718096; margin-top: 4px; }
+        /* 기존 플래너의 스타일을 그대로 유지합니다 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 10px; }
+        #topbar { background: #333; color: #fff; padding: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; margin-bottom: 10px; }
+        .nav-buttons button { background: #555; color: #fff; border: none; padding: 6px 12px; margin-right: 5px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        .nav-buttons button.active { background: #fff; color: #333; }
         
-        /* 하단 고정 버튼 스타일 */
-        .btn-container { margin-top: 20px; display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        .btn-save { background-color: #4c51bf; color: white; }
-        .btn-save:hover { background-color: #434190; }
-        .btn-load { background-color: #718096; color: white; }
-        .btn-load:hover { background-color: #4a5568; }
-        .loading { display: none; text-align: center; color: #4c51bf; font-weight: bold; margin: 10px 0; }
+        /* 상단 버튼 영역 스타일 고정 */
+        .action-buttons { display: flex; gap: 8px; align-items: center; }
+        .btn-action { border: none; padding: 6px 12px; cursor: pointer; border-radius: 3px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 4px; }
+        .btn-subject { background-color: #9b2c2c; }
+        .btn-save { background-color: #2f855a; }
+        .btn-print { background-color: #4a5568; }
+        
+        /* 상태 표시 배지 */
+        #status-indicator { font-size: 13px; font-weight: bold; color: #fc8181; }
+        #status-indicator.success { color: #68d391; }
+
+        /* 달력 및 메모 테이블 스타일 */
+        .week-selector { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .week-selector select, .week-selector button { padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; background: #fff; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .week-selector button.active { background: #333; color: #fff; }
+        
+        .planner-grid { display: flex; flex-direction: column; gap: 10px; background: #fff; border: 2px solid #333; border-radius: 4px; padding: 10px; }
+        .days-row { display: flex; gap: 10px; overflow-x: auto; }
+        .day-column { flex: 1; min-width: 180px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; padding: 8px; }
+        .day-header { text-align: center; font-weight: bold; padding: 6px; border-radius: 3px; margin-bottom: 8px; font-size: 14px; }
+        .day-header.mon { background: #ffebd8; color: #c05621; }
+        .day-header.tue { background: #e6fffa; color: #1d4ed8; }
+        .info-line { font-size: 12px; color: #666; margin-bottom: 6px; }
+        
+        .todo-list { display: flex; flex-direction: column; gap: 4px; }
+        .todo-item { display: flex; align-items: center; gap: 4px; background: #fff; padding: 4px; border: 1px solid #e2e8f0; border-radius: 3px; }
+        .todo-item input[type="text"] { flex: 1; border: none; font-size: 13px; outline: none; }
+        .btn-del { background: none; border: none; color: #cbd5e0; cursor: pointer; font-size: 12px; }
+        .btn-del:hover { color: #e53e3e; }
+        .btn-add-item { background: none; border: 1px dashed #cbd5e0; color: #718096; padding: 4px; font-size: 12px; cursor: pointer; border-radius: 3px; text-align: center; margin-top: 4px; }
+        
+        .memo-area { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 6px; }
+        .memo-area label { font-size: 12px; font-weight: bold; color: #e53e3e; display: flex; align-items: center; gap: 2px; }
+        .memo-area textarea { width: 100%; height: 50px; border: 1px solid #e2e8f0; border-radius: 3px; padding: 4px; font-size: 12px; resize: none; margin-top: 2px; }
+
+        .weekly-memo { margin-top: 10px; background: #fff; border: 2px solid #333; border-radius: 4px; padding: 10px; }
+        .weekly-memo-title { font-weight: bold; font-size: 14px; background: #333; color: #fff; padding: 6px; border-radius: 3px; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+        .weekly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .weekly-box { border: 1px solid #ccc; border-radius: 3px; padding: 6px; }
+        .weekly-box label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
+        .weekly-box textarea { width: 100%; height: 60px; border: 1px solid #e2e8f0; border-radius: 3px; padding: 4px; font-size: 12px; resize: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🎓 대학원 준비 플래너</h1>
-    <div id="status" class="status-badge">서버 연결 중...</div>
-    <div id="loading" class="loading">데이터 동기화 중...</div>
-    
-    <div id="planner-list"></div>
+<div id="topbar">
+    <div class="nav-buttons">
+        <span style="font-weight: bold; margin-right: 10px;">📖 스터디 플래너 <span id="user-title" style="font-size:12px; color:#ccc;">(유진)</span></span>
+        <button class="active">📅 플래너</button>
+        <button>📊 진도관리</button>
+        <button>📈 성취통계</button>
+    </div>
+    <div class="action-buttons">
+        <button class="btn-action btn-subject">📚 과목</button>
+        <button class="btn-action btn-save" onclick="saveData()">💾 저장</button>
+        <button class="btn-action btn-print">🖨️ 출력</button>
+        <span id="status-indicator">❌ 데이터 연결 대기 중</span>
+    </div>
+</div>
 
-    <div class="btn-container">
-        <button class="btn-save" onclick="saveData()">💾 서버에 저장하기</button>
-        <button class="btn-load" onclick="loadData()">🔄 새로고침 (불러오기)</button>
+<div class="week-selector">
+    <select id="month-select" onchange="changeMonth()">
+        <option value="5">5월</option>
+        <option value="6">6월</option>
+    </select>
+    <button class="active">1주차</button>
+    <button>2주차</button>
+    <button>3주차</button>
+    <button class="active">4주차</button>
+    <button>5주차</button>
+</div>
+
+<div class="planner-grid">
+    <div class="days-row">
+        <div class="day-column">
+            <div class="day-header mon">25 MON 월요일</div>
+            <div class="info-line">공부시간(h): 3.5</div>
+            <div class="todo-list" id="todo-mon">
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del">×</button></div>
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="..."> <button class="btn-del">×</button></div>
+            </div>
+            <button class="btn-add-item" onclick="addTodo('mon')">+ 항목</button>
+            <div class="memo-area">
+                <label>📌 메모</label>
+                <textarea id="memo-mon">자유 메모...</textarea>
+            </div>
+        </div>
+
+        <div class="day-column">
+            <div class="day-header tue">26 TUE 화요일</div>
+            <div class="info-line">공부시간(h): 3.5</div>
+            <div class="todo-list" id="todo-tue">
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del">×</button></div>
+                <div class="todo-item"><input type="checkbox"> <input type="text" value="..."> <button class="btn-del">×</button></div>
+            </div>
+            <button class="btn-add-item" onclick="addTodo('tue')">+ 항목</button>
+            <div class="memo-area">
+                <label>📌 메모</label>
+                <textarea id="memo-tue">자유 메모...</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="weekly-memo">
+    <div class="weekly-memo-title">📝 주간 메모</div>
+    <div class="weekly-grid">
+        <div class="weekly-box"><label>이번 주 목표</label><textarea id="week-target">입력...</textarea></div>
+        <div class="weekly-box"><label>잘한 점</label><textarea id="week-good">입력...</textarea></div>
+        <div class="weekly-box"><label>아쉬운 점</label><textarea id="week-bad">입력...</textarea></div>
+        <div class="weekly-box"><label>다음 주 준비</label><textarea id="week-next">입력...</textarea></div>
     </div>
 </div>
 
 <script>
+    // Supabase 접속 정보 설정 완벽 적용
     const SB_URL = "https://gbjlroojsweedundumfi.supabase.co"; 
     const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
     
-    // 라이브러리 충돌을 방지하기 위해 window 객체에서 호출하도록 설정
     const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
-    // 기본 플래너 데이터 구조
-    let plannerData = [
-        {
-            name: "대학원준비",
-            color: "#f0e8f0",
-            units: [
-                { t: "연구계획서", d: "주제 설정 및 초안 작성", s: "진행중", dt: "" },
-                { t: "영어 논문 읽기", d: "관련 분야 주요 저널 초록 해석", s: "미완료", dt: "" },
-                { t: "면접 준비", d: "예상질문 리스트업 및 답변 작성", s: "미완료", dt: "" },
-                { t: "대학원 정보 수집", d: "컨택 교수님 연구실 리서치", s: "미완료", dt: "" }
-            ]
+    // 입력 상태 텍스트 변경 함수
+    function setStatus(text, isSuccess = false) {
+        const el = document.getElementById('status-indicator');
+        el.innerText = text;
+        if (isSuccess) {
+            el.className = 'success';
+        } else {
+            el.className = '';
         }
-    ];
+    }
 
-    // Supabase에서 데이터 로드
-    async function dbGet() {
-        showLoading(true);
+    // 화면의 모든 입력 데이터를 수집하는 함수
+    function captureAllData() {
+        return {
+            memoMon: document.getElementById('memo-mon').value,
+            memoTue: document.getElementById('memo-tue').value,
+            weekTarget: document.getElementById('week-target').value,
+            weekGood: document.getElementById('week-good').value,
+            weekBad: document.getElementById('week-bad').value,
+            weekNext: document.getElementById('week-next').value,
+            updatedAt: new Date().toISOString()
+        };
+    }
+
+    // 화면에 데이터를 뿌려주는 함수
+    function applyDataToScreen(data) {
+        if(!data) return;
+        if(data.memoMon !== undefined) document.getElementById('memo-mon').value = data.memoMon;
+        if(data.memoTue !== undefined) document.getElementById('memo-tue').value = data.memoTue;
+        if(data.weekTarget !== undefined) document.getElementById('week-target').value = data.weekTarget;
+        if(data.weekGood !== undefined) document.getElementById('week-good').value = data.weekGood;
+        if(data.weekBad !== undefined) document.getElementById('week-bad').value = data.weekBad;
+        if(data.weekNext !== undefined) document.getElementById('week-next').value = data.weekNext;
+    }
+
+    // 1. 서버에서 데이터 불러오기 (dbGet)
+    async function loadData() {
+        setStatus("🔄 동기화 중...");
         try {
             const { data, error } = await supabaseClient
                 .from('planner_data') 
@@ -76,99 +182,62 @@
 
             if (error) {
                 if (error.code === 'PGRST116') { 
-                    showStatus("초기 기본 데이터를 불러왔습니다.");
-                    return plannerData; 
+                    setStatus("✅ 연결 완료 (기존 데이터 없음)", true);
+                    return; 
                 }
                 throw error;
             }
 
-            return data && data.content ? JSON.parse(data.content) : plannerData;
+            if (data && data.content) {
+                const parsed = JSON.parse(data.content);
+                applyDataToScreen(parsed);
+                setStatus("// 동기화 성공", true);
+            }
         } catch (err) {
-            console.error("서버에서 불러오기 실패:", err);
-            showStatus("⚠️ 서버 연결 실패! 로컬 백업을 가져옵니다.");
-            const local = localStorage.getItem('planner_backup');
-            return local ? JSON.parse(local) : plannerData;
-        } finally {
-            showLoading(false);
+            console.error(err);
+            setStatus("⚠️ 서버 연결 실패 (로컬 모드)");
+            const local = localStorage.getItem('planner_local_backup');
+            if(local) applyDataToScreen(JSON.parse(local));
         }
     }
 
-    // Supabase에 데이터 저장
-    async function dbSet(newData) {
-        showLoading(true);
-        const jsonString = JSON.stringify(newData);
+    // 2. 서버에 데이터 저장하기 (dbSet)
+    async function saveData() {
+        setStatus("💾 저장 중...");
+        const currentData = captureAllData();
+        const jsonString = JSON.stringify(currentData);
         
-        localStorage.setItem('planner_backup', jsonString);
+        // 브라우저 로컬 스토리지 안전 백업
+        localStorage.setItem('planner_local_backup', jsonString);
 
         try {
-            showStatus("서버에 안전하게 동기화 중...");
             const { error } = await supabaseClient
                 .from('planner_data')
                 .insert([{ content: jsonString, created_at: new Date().toISOString() }]);
 
             if (error) throw error;
-            showStatus("✅ 클라우드 동기화 완료!");
+            setStatus("// 저장 성공", true);
         } catch (err) {
-            console.error("서버 저장 실패:", err);
-            showStatus("❌ 저장 실패 (Supabase 테이블 설정을 확인하세요)");
-            alert("서버 저장에 실패했습니다. Supabase 대시보드 내 테이블 생성(planner_data)과 RLS 해제 세팅이 되어있는지 꼭 확인해 주세요!");
-        } finally {
-            showLoading(false);
+            console.error("저장 오류:", err);
+            setStatus("❌ 저장 실패");
+            alert("서버 저장 실패! Supabase에 'planner_data' 테이블이 생성되어 있는지, RLS(보안)가 꺼져있는지 확인이 필요합니다.");
         }
     }
 
-    function showLoading(isLoading) { document.getElementById('loading').style.display = isLoading ? 'block' : 'none'; }
-    function showStatus(msg) { document.getElementById('status').innerText = msg; }
-
-    // [복구 완료] 끊겼던 화면 렌더링 코드를 온전하게 연결했습니다.
-    function renderPlanner(data) {
-        const listContainer = document.getElementById('planner-list');
-        listContainer.innerHTML = '';
-
-        data.forEach((group, groupIdx) => {
-            let groupHtml = `
-                <div class="planner-group">
-                    <div class="group-title">
-                        <span class="color-dot" style="background-color: ${group.color}"></span>
-                        ${group.name}
-                    </div>
-            `;
-
-            group.units.forEach((unit, unitIdx) => {
-                groupHtml += `
-                    <div class="task-item" style="border-left-color: ${group.color}">
-                        <div class="task-header">
-                            <span>${unit.t}</span>
-                            <select onchange="updateStatus(${groupIdx}, ${unitIdx}, this.value)">
-                                <option value="미완료" ${unit.s==='미완료'?'selected':''}>미완료</option>
-                                <option value="진행중" ${unit.s==='진행중'?'selected':''}>진행중</option>
-                                <option value="완료" ${unit.s==='완료'?'selected':''}>완료</option>
-                            </select>
-                        </div>
-                        <div class="task-desc">${unit.d || '설명 없음'}</div>
-                    </div>
-                `;
-            });
-
-            groupHtml += `</div>`;
-            listContainer.innerHTML += groupHtml;
-        });
+    // 항목 추가 임시 함수
+    function addTodo(day) {
+        const container = document.getElementById(`todo-${day}`);
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        div.innerHTML = `<input type="checkbox"> <input type="text" value=""> <button class="btn-del" onclick="this.parentElement.remove()">×</button>`;
+        container.appendChild(div);
     }
 
-    function updateStatus(groupIdx, unitIdx, newStatus) {
-        plannerData[groupIdx].units[unitIdx].s = newStatus;
-        showStatus("⚠️ 변경 사항이 있습니다. '서버에 저장하기'를 꼭 눌러주세요!");
+    function changeMonth() {
+        console.log("월 변경");
     }
 
-    async function loadData() {
-        plannerData = await dbGet();
-        renderPlanner(plannerData);
-    }
-
-    async function saveData() {
-        await dbSet(plannerData);
-    }
-
+    // 페이지 시작 시 작동
     window.onload = async () => {
         await loadData();
     };
