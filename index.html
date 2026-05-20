@@ -26,6 +26,10 @@
         .week-selector select, .week-selector button { padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; background: #fff; font-weight: bold; cursor: pointer; white-space: nowrap; }
         .week-selector button.active { background: #333; color: #fff; }
         
+        /* 탭 전환을 위한 컨텐츠 섹션 스타일 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .planner-grid { display: flex; flex-direction: column; gap: 10px; background: #fff; border: 2px solid #333; border-radius: 4px; padding: 10px; }
         .days-row { display: flex; gap: 10px; overflow-x: auto; }
         .day-column { flex: 1; min-width: 180px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; padding: 8px; }
@@ -59,6 +63,9 @@
         .weekly-box { border: 1px solid #ccc; border-radius: 3px; padding: 6px; }
         .weekly-box label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
         .weekly-box textarea { width: 100%; height: 60px; border: 1px solid #e2e8f0; border-radius: 3px; padding: 4px; font-size: 12px; resize: none; }
+
+        /* 진도관리 및 성취통계 임시 안내 뷰 */
+        .placeholder-view { background: white; padding: 30px; border-radius: 6px; border: 2px solid #333; text-align: center; color: #4a5568; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -66,9 +73,9 @@
 <div id="topbar">
     <div class="nav-buttons">
         <span style="font-weight: bold; margin-right: 10px;">📖 스터디 플래너 <span id="user-title" style="font-size:12px; color:#ccc;">(유진)</span></span>
-        <button class="active">📅 플래너</button>
-        <button>📊 진도관리</button>
-        <button>📈 성취통계</button>
+        <button id="btn-tab-planner" class="active" onclick="switchTab('planner')">📅 플래너</button>
+        <button id="btn-tab-progress" onclick="switchTab('progress')">📊 진도관리</button>
+        <button id="btn-tab-stats" onclick="switchTab('stats')">📈 성취통계</button>
     </div>
     <div class="action-buttons">
         <button class="btn-action btn-subject">📚 과목</button>
@@ -78,97 +85,133 @@
     </div>
 </div>
 
-<div class="week-selector">
-    <select id="month-select" onchange="changeMonth()">
-        <option value="5">5월</option>
-        <option value="6">6월</option>
-    </select>
-    <button>1주차</button>
-    <button>2주차</button>
-    <button>3주차</button>
-    <button class="active">4주차</button>
-    <button>5주차</button>
-</div>
+<div id="tab-planner-view" class="tab-content active">
+    <div class="week-selector">
+        <select id="month-select">
+            <option value="5">5월</option>
+            <option value="6">6월</option>
+        </select>
+        <button>1주차</button>
+        <button>2주차</button>
+        <button>3주차</button>
+        <button class="active">4주차</button>
+        <button>5주차</button>
+    </div>
 
-<div class="planner-grid">
-    <div class="days-row">
-        <div class="day-column">
-            <div class="day-header mon">25 MON 월요일</div>
-            <div class="info-line">공부시간(h): 3.5</div>
-            <div class="todo-list" id="todo-mon">
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
+    <div class="planner-grid">
+        <div class="days-row">
+            <div class="day-column">
+                <div class="day-header mon">25 MON 월요일</div>
+                <div class="info-line">공부시간(h): 3.5</div>
+                <div class="todo-list" id="todo-mon">
+                    <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
+                </div>
+                <button class="btn-add-item" onclick="addTodo('mon')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-mon">자유 메모...</textarea></div>
             </div>
-            <button class="btn-add-item" onclick="addTodo('mon')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-mon">자유 메모...</textarea></div>
-        </div>
 
-        <div class="day-column">
-            <div class="day-header tue">26 TUE 화요일</div>
-            <div class="info-line">공부시간(h): 3.5</div>
-            <div class="todo-list" id="todo-tue">
-                <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
+            <div class="day-column">
+                <div class="day-header tue">26 TUE 화요일</div>
+                <div class="info-line">공부시간(h): 3.5</div>
+                <div class="todo-list" id="todo-tue">
+                    <div class="todo-item"><input type="checkbox"> <input type="text" value="할 일 입력..."> <button class="btn-del" onclick="this.parentElement.remove()">×</button></div>
+                </div>
+                <button class="btn-add-item" onclick="addTodo('tue')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-tue">자유 메모...</textarea></div>
             </div>
-            <button class="btn-add-item" onclick="addTodo('tue')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-tue">자유 메모...</textarea></div>
-        </div>
 
-        <div class="day-column">
-            <div class="day-header wed">27 WED 수요일</div>
-            <div class="info-line">공부시간(h): 0.0</div>
-            <div class="todo-list" id="todo-wed"></div>
-            <button class="btn-add-item" onclick="addTodo('wed')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-wed">자유 메모...</textarea></div>
-        </div>
+            <div class="day-column">
+                <div class="day-header wed">27 WED 수요일</div>
+                <div class="info-line">공부시간(h): 0.0</div>
+                <div class="todo-list" id="todo-wed"></div>
+                <button class="btn-add-item" onclick="addTodo('wed')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-wed">자유 메모...</textarea></div>
+            </div>
 
-        <div class="day-column">
-            <div class="day-header thu">28 THU 목요일</div>
-            <div class="info-line">공부시간(h): 0.0</div>
-            <div class="todo-list" id="todo-thu"></div>
-            <button class="btn-add-item" onclick="addTodo('thu')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-thu">자유 메모...</textarea></div>
-        </div>
+            <div class="day-column">
+                <div class="day-header thu">28 THU 목요일</div>
+                <div class="info-line">공부시간(h): 0.0</div>
+                <div class="todo-list" id="todo-thu"></div>
+                <button class="btn-add-item" onclick="addTodo('thu')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-thu">자유 메모...</textarea></div>
+            </div>
 
-        <div class="day-column">
-            <div class="day-header fri">29 FRI 금요일</div>
-            <div class="info-line">공부시간(h): 0.0</div>
-            <div class="todo-list" id="todo-fri"></div>
-            <button class="btn-add-item" onclick="addTodo('fri')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-fri">자유 메모...</textarea></div>
-        </div>
+            <div class="day-column">
+                <div class="day-header fri">29 FRI 금요일</div>
+                <div class="info-line">공부시간(h): 0.0</div>
+                <div class="todo-list" id="todo-fri"></div>
+                <button class="btn-add-item" onclick="addTodo('fri')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-fri">자유 메모...</textarea></div>
+            </div>
 
-        <div class="day-column">
-            <div class="day-header sat">30 SAT 토요일</div>
-            <div class="info-line">공부시간(h): 0.0</div>
-            <div class="todo-list" id="todo-sat"></div>
-            <button class="btn-add-item" onclick="addTodo('sat')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-sat">자유 메모...</textarea></div>
-        </div>
+            <div class="day-column">
+                <div class="day-header sat">30 SAT 토요일</div>
+                <div class="info-line">공부시간(h): 0.0</div>
+                <div class="todo-list" id="todo-sat"></div>
+                <button class="btn-add-item" onclick="addTodo('sat')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-sat">자유 메모...</textarea></div>
+            </div>
 
-        <div class="day-column">
-            <div class="day-header sun">31 SUN 일요일</div>
-            <div class="info-line">공부시간(h): 0.0</div>
-            <div class="todo-list" id="todo-sun"></div>
-            <button class="btn-add-item" onclick="addTodo('sun')">+ 항목</button>
-            <div class="memo-area"><label>📌 메모</label><textarea id="memo-sun">자유 메모...</textarea></div>
+            <div class="day-column">
+                <div class="day-header sun">31 SUN 일요일</div>
+                <div class="info-line">공부시간(h): 0.0</div>
+                <div class="todo-list" id="todo-sun"></div>
+                <button class="btn-add-item" onclick="addTodo('sun')">+ 항목</button>
+                <div class="memo-area"><label>📌 메모</label><textarea id="memo-sun">자유 메모...</textarea></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="weekly-memo">
+        <div class="weekly-memo-title">📝 주간 메모</div>
+        <div class="weekly-grid">
+            <div class="weekly-box"><label>이번 주 목표</label><textarea id="week-target">입력...</textarea></div>
+            <div class="weekly-box"><label>잘한 점</label><textarea id="week-good">입력...</textarea></div>
+            <div class="weekly-box"><label>아쉬운 점</label><textarea id="week-bad">입력...</textarea></div>
+            <div class="weekly-box"><label>다음 주 준비</label><textarea id="week-next">입력...</textarea></div>
         </div>
     </div>
 </div>
 
-<div class="weekly-memo">
-    <div class="weekly-memo-title">📝 주간 메모</div>
-    <div class="weekly-grid">
-        <div class="weekly-box"><label>이번 주 목표</label><textarea id="week-target">입력...</textarea></div>
-        <div class="weekly-box"><label>잘한 점</label><textarea id="week-good">입력...</textarea></div>
-        <div class="weekly-box"><label>아쉬운 점</label><textarea id="week-bad">입력...</textarea></div>
-        <div class="weekly-box"><label>다음 주 준비</label><textarea id="week-next">입력...</textarea></div>
+<div id="tab-progress-view" class="tab-content">
+    <div class="placeholder-view">
+        📊 진도관리 메뉴 뷰가 활성화되었습니다.<br><br>
+        <span style="font-size:13px; font-weight:normal; color:#718096;">(기존에 연동되어 있던 진도 현황 및 과목별 진행률 컴포넌트가 표출되는 구역입니다.)</span>
+    </div>
+</div>
+
+<div id="tab-stats-view" class="tab-content">
+    <div class="placeholder-view">
+        📈 성취통계 메뉴 뷰가 활성화되었습니다.<br><br>
+        <span style="font-size:13px; font-weight:normal; color:#718096;">(이번 주 누적 공부 시간 분석 차트 및 통계 데이터가 표출되는 구역입니다.)</span>
     </div>
 </div>
 
 <script>
+    // Supabase 연동 변수 설정
     const SB_URL = "https://gbjlroojsweedundumfi.supabase.co"; 
     const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
     
     const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+
+    // [복구 완료] 상단 탭 전환 처리 함수
+    function switchTab(tabName) {
+        // 모든 탭 컨텐츠 보이지 않게 처리
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        // 모든 네비게이션 버튼 비활성화
+        document.querySelectorAll('.nav-buttons button').forEach(el => el.classList.remove('active'));
+
+        if(tabName === 'planner') {
+            document.getElementById('tab-planner-view').classList.add('active');
+            document.getElementById('btn-tab-planner').classList.add('active');
+        } else if(tabName === 'progress') {
+            document.getElementById('tab-progress-view').classList.add('active');
+            document.getElementById('btn-tab-progress').classList.add('active');
+        } else if(tabName === 'stats') {
+            document.getElementById('tab-stats-view').classList.add('active');
+            document.getElementById('btn-tab-stats').classList.add('active');
+        }
+    }
 
     function setStatus(text, isSuccess = false) {
         const el = document.getElementById('status-indicator');
@@ -176,9 +219,9 @@
         el.className = isSuccess ? 'success' : '';
     }
 
-    // [전체 요일 데이터 수집 및 반영 자동화 처리]
     const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
+    // 화면의 전체 입력 데이터 수집
     function captureAllData() {
         const data = {
             weekTarget: document.getElementById('week-target').value,
@@ -193,7 +236,6 @@
         days.forEach(day => {
             data.memos[day] = document.getElementById(`memo-${day}`).value;
             
-            // 각 요일별 할 일 리스트 수집
             const todoItems = [];
             const rows = document.querySelectorAll(`#todo-${day} .todo-item`);
             rows.forEach(row => {
@@ -206,6 +248,7 @@
         return data;
     }
 
+    // 서버 데이터를 화면 컴포넌트에 반영
     function applyDataToScreen(data) {
         if(!data) return;
         if(data.weekTarget !== undefined) document.getElementById('week-target').value = data.weekTarget;
@@ -218,7 +261,6 @@
                 document.getElementById(`memo-${day}`).value = data.memos[day];
             }
             
-            // 할 일 리스트 화면에 복원
             if(data.todos && data.todos[day]) {
                 const container = document.getElementById(`todo-${day}`);
                 container.innerHTML = '';
@@ -232,6 +274,7 @@
         });
     }
 
+    // Supabase 데이터 로드 기동
     async function loadData() {
         setStatus("🔄 동기화 중...");
         try {
@@ -262,6 +305,7 @@
         }
     }
 
+    // Supabase 데이터 동기화 전송
     async function saveData() {
         setStatus("💾 저장 중...");
         const currentData = captureAllData();
@@ -278,8 +322,8 @@
             setStatus("// 저장 성공", true);
         } catch (err) {
             console.error(err);
-            setStatus("❌ 저장 실패");
-            alert("서버 저장 실패! Supabase 사이트 대시보드에서 'planner_data' 테이블을 생성하고 RLS를 해제했는지 확인하세요.");
+            setStatus("❌ 저장 실패 (서버 권한 오류)");
+            alert("서버 전송 실패! Supabase 사이트 내부에서 'planner_data' 테이블 생성 및 'RLS 해제(Disable RLS)' 조치를 완료하셔야 주황색 에러가 사라집니다.");
         }
     }
 
@@ -290,8 +334,6 @@
         div.innerHTML = `<input type="checkbox"> <input type="text" value=""> <button class="btn-del" onclick="this.parentElement.remove()">×</button>`;
         container.appendChild(div);
     }
-
-    function changeMonth() {}
 
     window.onload = async () => {
         await loadData();
