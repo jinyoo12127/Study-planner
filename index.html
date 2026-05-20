@@ -3,119 +3,151 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📖 스터디 플래너</title>
+<title>📖 주간 스터디 플래너</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
+body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, Arial, sans-serif; background: #f8f9fa; color: #333; font-size: 12px; letter-spacing: -0.02em; }
 
-#topbar { background: #333; color: #fff; padding: 8px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; }
-.title { font-size: 13px; font-weight: 700; }
-.user { font-size: 10px; color: #999; }
+/* 상단 탑바 디자인 고도화 */
+#topbar { background: #2a2d32; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.title { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.user { font-size: 11px; color: #a0aec0; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; }
 .spacer { flex: 1; }
-.tab-btn { background: transparent; color: #aaa; border: 1px solid #555; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: inherit; }
-.tab-btn.active { background: #fff; color: #222; border-color: #fff; font-weight: 700; }
-.save-btn { background: #2f855a; color: #fff; border: none; padding: 4px 14px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; }
-.print-btn { background: #4a5568; color: #fff; border: none; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: inherit; }
-#status { font-size: 11px; font-weight: 700; color: #fc8181; }
-#status.ok { color: #68d391; }
+.tab-btn { background: transparent; color: #a0aec0; border: 1px solid #4a5568; padding: 6px 14px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+.tab-btn:hover { color: #fff; border-color: #718096; }
+.tab-btn.active { background: #fff; color: #2a2d32; border-color: #fff; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.save-btn { background: #4a7c59; color: #fff; border: none; padding: 6px 16px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; box-shadow: 0 2px 4px rgba(74,124,89,0.2); transition: background 0.2s; }
+.save-btn:hover { background: #385e43; }
+.print-btn { background: #4a5568; color: #fff; border: none; padding: 6px 14px; font-size: 11px; cursor: pointer; border-radius: 6px; transition: background 0.2s; }
+.print-btn:hover { background: #323a45; }
+#status { font-size: 11px; font-weight: 700; color: #feb2b2; }
+#status.ok { color: #9ae6b4; }
 
-#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.login-box { background: #fff; border: 2px solid #222; padding: 36px 28px; box-shadow: 4px 4px 0 #222; width: 100%; max-width: 320px; text-align: center; }
-.login-box h2 { font-size: 16px; margin-bottom: 20px; }
-.login-box input { width: 100%; border: 1px solid #aaa; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; outline: none; font-family: inherit; }
-.login-box button { width: 100%; background: #222; color: #fff; border: none; padding: 9px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+/* 로그인 화면 감성 디자인 */
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: #f0f2f5; }
+.login-box { background: #fff; border-radius: 16px; padding: 40px 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 340px; text-align: center; border: 1px solid #e1e4e8; }
+.login-box h2 { font-size: 18px; font-weight: 800; color: #2a2d32; margin-bottom: 6px; }
+.login-box input { width: 100%; border: 1px solid #e1e4e8; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; outline: none; transition: border 0.2s; }
+.login-box input:focus { border-color: #a0a8b0; }
+.login-box button { width: 100%; background: #2a2d32; color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.login-box button:hover { background: #1a1c1e; }
 
-.week-selector { display: flex; gap: 5px; padding: 10px 8px; flex-wrap: wrap; align-items: center; }
-.week-selector select { border: 1px solid #aaa; padding: 5px 8px; font-size: 13px; background: #fff; font-weight: 700; font-family: inherit; }
-.week-btn { background: #fff; color: #333; border: 1px solid #aaa; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: inherit; }
-.week-btn.active { background: #333; color: #fff; font-weight: 700; }
+/* 셀렉터 및 상단 주차 버튼 */
+.week-selector { display: flex; gap: 6px; padding: 16px 12px 6px; flex-wrap: wrap; align-items: center; }
+.week-selector select { border: 1px solid #cbd5e0; border-radius: 6px; padding: 6px 12px; font-size: 12px; background: #fff; font-weight: 700; outline: none; cursor: pointer; }
+.week-btn { background: #fff; color: #4a5568; border: 1px solid #e2e8f0; padding: 6px 14px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+.week-btn:hover { background: #f7fafc; border-color: #cbd5e0; }
+.week-btn.active { background: #2a2d32; color: #fff; border-color: #2a2d32; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-#planner-wrap { padding: 0 8px 16px; overflow-x: auto; }
+#planner-wrap { padding: 10px 12px 24px; overflow-x: auto; }
 
-.days-row { display: flex; gap: 8px; min-width: 1000px; }
-.day-col { flex: 1; border: 1px solid #bbb; background: #fff; border-radius: 4px; overflow: hidden; }
-.day-header { padding: 8px; font-weight: 700; font-size: 11px; text-align: center; border-bottom: 1px solid #ccc; }
-.day-body { padding: 8px; }
-.day-date { width: 100%; border: 1px solid #ddd; padding: 3px 6px; font-size: 11px; margin-bottom: 4px; font-family: inherit; outline: none; }
-.day-hours { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 10px; color: #888; }
-.day-hours input { border: 1px solid #ddd; padding: 2px 6px; font-size: 10px; width: 60px; font-family: inherit; outline: none; }
+/* 주간 레이아웃 카드 스타일 */
+.days-row { display: flex; gap: 12px; min-width: 1050px; }
+.day-col { flex: 1; border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
 
-.block { margin-bottom: 8px; border: 1px solid #eee; border-radius: 3px; overflow: hidden; }
-.block-header { padding: 4px 8px; font-weight: 700; font-size: 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
-.block-subject { flex: 1; }
-.block-time { font-size: 9px; color: #888; font-weight: 400; }
-.todo-list { padding: 4px 8px; }
-.todo-item { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
-.todo-item input[type=checkbox] { width: 12px; height: 12px; accent-color: #2f855a; flex-shrink: 0; cursor: pointer; }
-.todo-item input[type=text] { flex: 1; border: none; border-bottom: 1px solid #eee; font-size: 11px; padding: 1px 2px; background: transparent; outline: none; font-family: inherit; }
-.todo-item input[type=text].done { text-decoration: line-through; color: #aaa; }
-.btn-del-todo { background: none; border: none; color: #ddd; cursor: pointer; font-size: 10px; }
-.btn-add-todo { width: 100%; background: none; border: 1px dashed #ddd; color: #bbb; padding: 2px; font-size: 10px; cursor: pointer; font-family: inherit; margin-top: 2px; }
-.btn-add-block { width: 100%; background: none; border: 1px dashed #ddd; color: #bbb; padding: 3px; font-size: 10px; cursor: pointer; font-family: inherit; margin-top: 4px; }
-.day-memo { margin-top: 6px; border-top: 1px dashed #eee; padding-top: 6px; }
-.day-memo label { font-size: 9px; color: #bbb; display: block; margin-bottom: 2px; }
-.day-memo textarea { width: 100%; border: 1px solid #eee; font-size: 10px; padding: 3px; resize: vertical; outline: none; font-family: inherit; min-height: 36px; }
-.pct-badge { font-size: 9px; background: rgba(255,255,255,0.7); padding: 1px 5px; border-radius: 10px; font-weight: 700; }
+/* 요일 헤더 디자인 수정: 화이트 톤으로 통일감 부여 */
+.day-header { padding: 10px; font-weight: 800; font-size: 11px; text-align: center; background: #ffffff !important; color: #2a2d32; border-bottom: 1px solid #edf2f7; letter-spacing: 0.05em; }
+.day-body { padding: 10px; flex: 1; display: flex; flex-direction: column; }
+.day-date { width: 100%; border: 1px solid #edf2f7; border-radius: 6px; padding: 5px 8px; font-size: 11px; margin-bottom: 6px; font-weight: 600; background: #fafafa; text-align: center; outline: none; }
+.day-hours { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 10px; font-size: 11px; color: #718096; font-weight: 600; background: #f7fafc; padding: 4px 8px; border-radius: 6px; }
+.day-hours input { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 6px; font-size: 11px; width: 50px; text-align: center; font-weight: 700; color: #2b6cb0; outline: none; }
 
-.week-memo-wrap { background: #fff; border: 1px solid #bbb; border-radius: 4px; padding: 10px; margin-top: 8px; }
-.week-memo-title { font-weight: 700; font-size: 12px; background: #333; color: #fff; padding: 5px 8px; border-radius: 3px; margin-bottom: 8px; }
-.week-memo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.week-memo-box label { font-size: 10px; font-weight: 700; color: #666; display: block; margin-bottom: 3px; }
-.week-memo-box textarea { width: 100%; border: 1px solid #eee; font-size: 11px; padding: 4px; resize: vertical; outline: none; font-family: inherit; min-height: 50px; }
+/* 과목 블록 디자인 고도화 (글자색 화이트로 세련되게 변경) */
+.block { margin-bottom: 10px; border: 1px solid #edf2f7; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.01); background: #fff; }
+.block-header { padding: 6px 10px; font-weight: 700; font-size: 11px; display: flex; align-items: center; gap: 4px; cursor: pointer; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.block-subject { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.block-time { font-size: 10px; opacity: 0.85; font-weight: 500; }
+.todo-list { padding: 6px; background: #fafafa; }
+.todo-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.todo-item input[type=checkbox] { width: 13px; height: 13px; accent-color: #4a5568; flex-shrink: 0; cursor: pointer; }
+.todo-item input[type=text] { flex: 1; border: none; border-bottom: 1px solid transparent; font-size: 11px; padding: 2px 4px; background: transparent; outline: none; transition: all 0.2s; }
+.todo-item input[type=text]:focus { border-bottom-color: #cbd5e0; background: #fff; }
+.todo-item input[type=text].done { text-decoration: line-through; color: #a0aec0; }
+.btn-del-todo { background: none; border: none; color: #cbd5e0; cursor: pointer; font-size: 12px; padding: 0 2px; transition: color 0.2s; }
+.btn-del-todo:hover { color: #e53e3e; }
+.btn-add-todo { width: 100%; background: #fff; border: 1px dashed #e2e8f0; color: #a0aec0; padding: 4px; font-size: 10px; font-weight: 600; cursor: pointer; border-radius: 0 0 8px 8px; transition: all 0.2s; }
+.btn-add-todo:hover { background: #f7fafc; color: #718096; border-color: #cbd5e0; }
+.btn-add-block { width: 100%; background: #f7fafc; border: 1px dashed #cbd5e0; color: #718096; padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; margin-top: auto; transition: all 0.2s; }
+.btn-add-block:hover { background: #edf2f7; color: #2a2d32; border-color: #a0aec0; }
 
-/* 진도관리 */
-#progress-wrap { padding: 10px 8px; }
-.progress-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 6px; margin-bottom: 12px; }
-.progress-card { background: #fff; border: 1px solid #bbb; padding: 10px; cursor: pointer; }
-.progress-card .name { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
-.progress-bar-bg { background: #eee; height: 5px; overflow: hidden; margin-bottom: 3px; }
-.progress-bar-fill { height: 100%; transition: width 0.3s; }
-.progress-card .pct { font-size: 10px; color: #888; }
-.subj-detail { background: #fff; border: 1px solid #bbb; margin-bottom: 8px; }
-.subj-detail-header { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; }
-.subj-detail-header .name { font-weight: 700; flex: 1; }
+.day-memo { margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
+.day-memo label { font-size: 10px; font-weight: 700; color: #a0aec0; display: block; margin-bottom: 4px; text-transform: uppercase; }
+.day-memo textarea { width: 100%; border: 1px solid #edf2f7; border-radius: 6px; font-size: 11px; padding: 6px; resize: vertical; outline: none; background: #fafafa; min-height: 42px; transition: border 0.2s; }
+.day-memo textarea:focus { border-color: #cbd5e0; background: #fff; }
+.pct-badge { font-size: 9px; background: rgba(255,255,255,0.25); color: #fff; padding: 1px 5px; border-radius: 10px; font-weight: 700; margin-left: 4px; }
+
+/* 하단 주간 메모 구역 디자인 고도화 */
+.week-memo-wrap { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.week-memo-title { font-weight: 800; font-size: 12px; background: #2a2d32; color: #fff; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; display: inline-block; }
+.week-memo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 768px) { .week-memo-grid { grid-template-columns: repeat(2, 1fr); } }
+.week-memo-box { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7; }
+.week-memo-box label { font-size: 11px; font-weight: 700; color: #4a5568; display: block; margin-bottom: 6px; }
+.week-memo-box textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px; padding: 6px; resize: vertical; outline: none; min-height: 60px; transition: border 0.2s; }
+.week-memo-box textarea:focus { border-color: #cbd5e0; background: #fff; }
+
+/* 진도관리 탭 감성 디자인 */
+#progress-wrap { padding: 16px 12px; }
+.progress-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; margin-bottom: 16px; }
+.progress-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.01); transition: transform 0.2s, box-shadow 0.2s; }
+.progress-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.04); }
+.progress-card .name { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #fff; padding: 3px 8px; border-radius: 4px; display: inline-block; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+.progress-bar-bg { background: #edf2f7; height: 6px; border-radius: 3px; overflow: hidden; margin: 6px 0 4px; }
+.progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.progress-card .pct { font-size: 10px; color: #718096; font-weight: 600; }
+.subj-detail { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
+.subj-detail-header { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.subj-detail-header .name { font-weight: 800; flex: 1; font-size: 12px; }
 .unit-table { border-collapse: collapse; width: 100%; font-size: 11px; }
-.unit-table th { background: #f5f5f5; border: 1px solid #eee; padding: 4px 8px; font-size: 10px; font-weight: 700; text-align: left; }
-.unit-table td { border: 1px solid #eee; padding: 5px 8px; }
-.unit-table select { border: 1px solid #ddd; padding: 2px 6px; font-size: 11px; font-family: inherit; font-weight: 700; outline: none; cursor: pointer; }
-.add-unit-row { padding: 6px 10px; }
-.add-unit-row input { border: 1px solid #ddd; padding: 4px 8px; font-size: 11px; outline: none; margin-right: 4px; font-family: inherit; }
-.add-unit-row button { background: #333; color: #fff; border: none; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; }
+.unit-table th { background: #f7fafc; border-bottom: 1px solid #e2e8f0; padding: 6px 12px; font-size: 10px; font-weight: 700; color: #718096; text-align: left; }
+.unit-table td { border-bottom: 1px solid #edf2f7; padding: 7px 12px; color: #4a5568; }
+.unit-table select { border: 1px solid #cbd5e0; border-radius: 4px; padding: 2px 4px; font-size: 11px; font-weight: 700; outline: none; cursor: pointer; background: #fff; }
+.add-unit-row { padding: 8px 12px; background: #f8f9fa; display: flex; gap: 6px; }
+.add-unit-row input { border: 1px solid #cbd5e0; border-radius: 6px; padding: 5px 10px; font-size: 11px; outline: none; flex: 1; max-width: 240px; }
+.add-unit-row button { background: #2a2d32; color: #fff; border: none; border-radius: 6px; padding: 5px 14px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
-/* 성취통계 */
-#stats-wrap { padding: 10px 8px; }
-.summary-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 8px; margin-bottom: 14px; }
-.summary-card { background: #fff; border: 1px solid #bbb; padding: 10px; }
-.summary-card .label { font-size: 10px; color: #888; margin-bottom: 4px; }
-.summary-card .val { font-size: 18px; font-weight: 700; }
-.stats-table { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid #bbb; margin-bottom: 10px; font-size: 11px; overflow-x: auto; display: block; }
-.stats-table th, .stats-table td { border: 1px solid #ddd; padding: 5px 8px; white-space: nowrap; }
-.stats-table th { background: #f0f0f0; font-weight: 700; text-align: center; }
+/* 성취통계 디자인 */
+#stats-wrap { padding: 16px 12px; }
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 12px; margin-bottom: 20px; }
+.summary-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
+.summary-card .label { font-size: 11px; font-weight: 700; color: #718096; margin-bottom: 6px; }
+.summary-card .val { font-size: 20px; font-weight: 800; }
+.stats-table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; margin-bottom: 10px; font-size: 11px; display: table; }
+.stats-table th, .stats-table td { padding: 8px 12px; border-bottom: 1px solid #edf2f7; }
+.stats-table th { background: #f7fafc; font-weight: 700; color: #4a5568; text-align: left; border-bottom: 2px solid #e2e8f0; }
 
-/* 과목 모달 */
-#modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+/* 과목 관리 탭 */
+#tab-subjects input { border-radius: 6px; }
+#tab-subjects button { border-radius: 6px; }
+
+/* 블록 편집 모달 클래식화 */
+#modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(2px); }
 #modal-bg.open { display: flex; }
-#modal { background: #fff; border: 2px solid #333; padding: 20px; width: 100%; max-width: 320px; box-shadow: 4px 4px 0 #333; max-height: 80vh; overflow-y: auto; }
-#modal h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-.modal-label { font-size: 10px; color: #888; display: block; margin-bottom: 3px; }
-.modal-input { width: 100%; border: 1px solid #ddd; padding: 7px 10px; font-size: 13px; margin-bottom: 10px; outline: none; font-family: inherit; }
-.subj-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-.subj-tag { border: 1px solid #ddd; padding: 3px 10px; font-size: 11px; background: #fff; color: #555; cursor: pointer; font-family: inherit; }
-.subj-tag.selected { background: #333; color: #fff; border-color: #333; font-weight: 700; }
-.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-.modal-btns button { border: 1px solid #ccc; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit; }
-.modal-cancel { background: #eee; color: #555; }
-.modal-confirm { background: #222; color: #fff; border-color: #222; }
+#modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 340px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); max-height: 80vh; overflow-y: auto; }
+#modal h3 { font-size: 14px; font-weight: 800; margin-bottom: 14px; border-bottom: 1px solid #edf2f7; padding-bottom: 10px; color: #2a2d32; }
+.modal-label { font-size: 11px; font-weight: 700; color: #718096; display: block; margin-bottom: 4px; }
+.modal-input { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 12px; margin-bottom: 12px; outline: none; }
+.modal-input:focus { border-color: #cbd5e0; }
+.subj-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.subj-tag { border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; background: #fff; color: #4a5568; cursor: pointer; transition: all 0.2s; }
+.subj-tag:hover { background: #f7fafc; }
+.subj-tag.selected { background: #2a2d32 !important; color: #fff !important; border-color: #2a2d32 !important; font-weight: 700; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.modal-btns button { border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.modal-cancel { background: #f7fafc; color: #4a5568; }
+.modal-confirm { background: #2a2d32; color: #fff; border-color: #2a2d32; }
 
 @media print {
   @page { size: A4 landscape; margin: 4mm; }
   body { background: #fff !important; }
-  #topbar, .week-selector, .btn-add-todo, .btn-add-block, .btn-del-todo, #modal-bg { display: none !important; }
-  .days-row { min-width: 100%; }
-  .day-col { font-size: 7px; }
+  #topbar, .week-selector, .btn-add-todo, .btn-add-block, .btn-del-todo, #modal-bg, .day-memo, .week-memo-wrap { display: none !important; }
+  .days-row { min-width: 100%; gap: 6px; }
+  .day-col { font-size: 8px; border-radius: 0; box-shadow: none; }
   .todo-item input[type=text] { display: none; }
-  .todo-text-print { display: inline !important; font-size: 7px; }
+  .todo-text-print { display: inline !important; font-size: 8px; }
+  .block { box-shadow: none; border-color: #ccc; }
+  .block-header { color: #000 !important; background: #fff !important; border-bottom: 1px solid #ccc; text-shadow: none; padding: 4px; }
 }
 .todo-text-print { display: none; }
 </style>
@@ -124,18 +156,18 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
 
 <div id="login-screen">
   <div class="login-box">
-    <div style="font-size:36px;margin-bottom:8px">📖</div>
+    <div style="font-size:40px;margin-bottom:12px">📖</div>
     <h2>주간 스터디 플래너</h2>
-    <p style="font-size:11px;color:#888;margin-bottom:20px;line-height:1.6">닉네임으로 어디서든 동기화</p>
-    <input type="text" id="login-input" placeholder="닉네임 입력 (예: jinyoo)">
-    <p style="font-size:10px;color:#bbb;margin-bottom:12px">같은 닉네임으로 어디서든 이어서 쓸 수 있어요</p>
+    <p style="font-size:11px;color:#718096;margin-bottom:24px;line-height:1.6">나만의 학습 루틴 실시간 동기화</p>
+    <input type="text" id="login-input" placeholder="닉네임 입력 (예: yujin)">
+    <p style="font-size:10px;color:#a0aec0;margin-bottom:16px">입력하신 닉네임으로 데이터가 안전하게 매칭됩니다.</p>
     <button onclick="doLogin()">시작하기</button>
   </div>
 </div>
 
 <div id="app" style="display:none">
   <div id="topbar">
-    <span class="title">📖 스터디 플래너</span>
+    <span class="title">📖 주간 스터디 플래너</span>
     <span class="user" id="user-label"></span>
     <div class="spacer"></div>
     <button class="tab-btn active" onclick="showTab('planner')">📅 플래너</button>
@@ -166,17 +198,17 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
   <div id="tab-progress" style="display:none"><div id="progress-wrap"></div></div>
   <div id="tab-stats" style="display:none"><div id="stats-wrap"></div></div>
   <div id="tab-subjects" style="display:none">
-    <div style="padding:12px 8px;max-width:480px">
-      <div style="background:#fff;border:1px solid #bbb;border-radius:4px;overflow:hidden">
-        <div style="background:#333;color:#fff;font-weight:700;padding:8px 12px;font-size:12px">📚 과목 목록</div>
-        <div style="padding:10px 12px">
-          <p style="font-size:11px;color:#aaa;margin-bottom:8px">플래너에서 과목 클릭 시 이 목록에서 선택 가능해요</p>
+    <div style="padding:16px 12px;max-width:500px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.01)">
+        <div style="background:#2a2d32;color:#fff;font-weight:700;padding:10px 16px;font-size:12px">📚 내 과목 관리 목록</div>
+        <div style="padding:14px 16px">
+          <p style="font-size:11px;color:#718096;margin-bottom:10px">과목을 등록하면 플래너 및 모달창 태그에 감성 컬러칩이 순서대로 자동 배정됩니다.</p>
           <div id="subjects-list"></div>
-          <div style="display:flex;gap:6px;margin-top:8px">
+          <div style="display:flex;gap:6px;margin-top:12px">
             <input type="text" id="new-subj-input" placeholder="새 과목 입력 후 Enter"
-              style="flex:1;border:1px solid #ddd;padding:7px 10px;font-size:12px;outline:none;font-family:inherit"
+              style="flex:1;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;outline:none;"
               onkeydown="if(event.key==='Enter')addSubject()">
-            <button onclick="addSubject()" style="background:#333;color:#fff;border:none;padding:7px 14px;font-size:12px;cursor:pointer;font-family:inherit">추가</button>
+            <button onclick="addSubject()" style="background:#2a2d32;color:#fff;border:none;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">추가</button>
           </div>
         </div>
       </div>
@@ -187,16 +219,16 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
 <!-- 블록 편집 모달 -->
 <div id="modal-bg" onclick="if(event.target===this)closeModal()">
   <div id="modal">
-    <h3>과목 편집</h3>
-    <span class="modal-label">과목 선택</span>
+    <h3>과목 및 시간 구성</h3>
+    <span class="modal-label">내 등록 과목 선택</span>
     <div class="subj-tags" id="modal-tags"></div>
-    <span class="modal-label">직접 입력</span>
+    <span class="modal-label">직접 혹은 수정 입력</span>
     <input type="text" class="modal-input" id="modal-subj" placeholder="과목명">
-    <span class="modal-label">시간</span>
+    <span class="modal-label">학습 목표 시간</span>
     <input type="text" class="modal-input" id="modal-time" placeholder="예: 14:30~17:00">
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModal()">취소</button>
-      <button class="modal-confirm" onclick="closeModalConfirm()">확인</button>
+      <button class="modal-confirm" onclick="closeModalConfirm()">설정 완료</button>
     </div>
   </div>
 </div>
@@ -206,29 +238,41 @@ const SB_URL = "https://gbjlroojsweedundumfi.supabase.co";
 const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-// 요일 데이터를 월~일 7일 전체로 정상 확장 매칭
+// 지정해주신 10가지 프리미엄 뮤트톤 컬러칩 배열
+const COLOR_PALETTE = [
+  '#C4958A', // Rose
+  '#B5A898', // Mocha
+  '#9DB49A', // Sage
+  '#8E9DB8', // Steel Blue
+  '#A0A8B0', // Slate
+  '#C9A0A0', // Dusty Pink
+  '#A8A87A', // Olive
+  '#A89EC0', // Lavender
+  '#C09878', // Terracotta
+  '#7AABAA'  // Teal
+];
+
+// 요일 구조 (헤더 배경색은 CSS단에서 전부 #ffffff 처리 완료)
 const DAYS = [
-  {id:'mon',label:'MON 월요일',color:'#ffebd8'},
-  {id:'tue',label:'TUE 화요일',color:'#e6fffa'},
-  {id:'wed',label:'WED 수요일',color:'#e0f2fe'},
-  {id:'thu',label:'THU 목요일',color:'#f3e8ff'},
-  {id:'fri',label:'FRI 금요일',color:'#fae8ff'},
-  {id:'sat',label:'SAT 토요일',color:'#eff6ff'},
-  {id:'sun',label:'SUN 일요일',color:'#fff5f5'},
+  {id:'mon',label:'MON 월요일'},
+  {id:'tue',label:'TUE 화요일'},
+  {id:'wed',label:'WED 수요일'},
+  {id:'thu',label:'THU 목요일'},
+  {id:'fri',label:'FRI 금요일'},
+  {id:'sat',label:'SAT 토요일'},
+  {id:'sun',label:'SUN 일요일'}
 ];
 const MEMO_LABELS = ['이번 주 목표','잘한 점','아쉬운 점','다음 주 준비'];
-const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-const WEEKS = ['1주차','2주차','3주차','4주차','5주차'];
 const DEFAULT_SUBJECTS = ['심리학개론','이상심리학','임상심리학','인지치료','통계학','토익(LC)','토익(RC)','대학원준비'];
 const DEFAULT_PROGRESS = [
-  {name:'심리학개론',color:'#fde8d8',units:[{t:'1장. 심리학이란',s:'미완료',dt:''},{t:'2장. 생물심리학',s:'미완료',dt:''},{t:'3장. 감각과 지각',s:'미완료',dt:''},{t:'4장. 의식',s:'미완료',dt:''},{t:'5장. 학습',s:'미완료',dt:''},{t:'6장. 기억',s:'미완료',dt:''},{t:'7장. 인지',s:'미완료',dt:''},{t:'8장. 동기와 정서',s:'미완료',dt:''},{t:'9장. 발달심리',s:'미완료',dt:''},{t:'10장. 성격',s:'미완료',dt:''},{t:'11장. 사회심리',s:'미완료',dt:''},{t:'12장. 심리검사',s:'미완료',dt:''},{t:'13장. 이상심리',s:'미완료',dt:''},{t:'14장. 치료',s:'미완료',dt:''},{t:'15장. 건강심리',s:'미완료',dt:''}]},
-  {name:'이상심리학',color:'#d8f0e8',units:[{t:'1장. 이상행동의 이해',s:'미완료',dt:''},{t:'2장. 불안장애',s:'미완료',dt:''},{t:'3장. 강박장애',s:'미완료',dt:''},{t:'4장. 외상장애',s:'미완료',dt:''},{t:'5장. 우울장애',s:'미완료',dt:''},{t:'6장. 양극성장애',s:'미완료',dt:''},{t:'7장. 정신증',s:'미완료',dt:''},{t:'8장. 신체증상장애',s:'미완료',dt:''},{t:'9장. 해리장애',s:'미완료',dt:''},{t:'10장. 섭식장애',s:'미완료',dt:''},{t:'11장. 성격장애',s:'미완료',dt:''},{t:'12장. 물질관련장애',s:'미완료',dt:''},{t:'13장. 신경발달장애',s:'미완료',dt:''}]},
-  {name:'임상심리학',color:'#ead8f0',units:[{t:'1장. 임상심리학 개관',s:'미완료',dt:''},{t:'2장. 심리평가',s:'미완료',dt:''},{t:'3장. 심리검사 I',s:'미완료',dt:''},{t:'4장. 심리검사 II',s:'미완료',dt:''},{t:'5장. 심리치료 I',s:'미완료',dt:''},{t:'6장. 심리치료 II',s:'미완료',dt:''},{t:'7장. 아동 임상',s:'미완료',dt:''},{t:'8장. 건강심리',s:'미완료',dt:''},{t:'9장. 법정심리',s:'미완료',dt:''},{t:'10장. 지역사회',s:'미완료',dt:''}]},
-  {name:'인지치료',color:'#d8eaf0',units:[{t:'1장. 인지치료 기초',s:'미완료',dt:''},{t:'2장. 자동적 사고',s:'미완료',dt:''},{t:'3장. 인지적 오류',s:'미완료',dt:''},{t:'4장. 핵심신념',s:'미완료',dt:''},{t:'5장. 행동실험',s:'미완료',dt:''},{t:'6장. 우울 인지치료',s:'미완료',dt:''},{t:'7장. 불안 인지치료',s:'미완료',dt:''},{t:'8장. 사례개념화',s:'미완료',dt:''}]},
-  {name:'통계학',color:'#f0ead8',units:[{t:'1장. 기술통계',s:'미완료',dt:''},{t:'2장. 확률분포',s:'미완료',dt:''},{t:'3장. 추론통계',s:'미완료',dt:''},{t:'4장. t검정',s:'미완료',dt:''},{t:'5장. 분산분석',s:'미완료',dt:''},{t:'6장. 상관분석',s:'미완료',dt:''},{t:'7장. 회귀분석',s:'미완료',dt:''},{t:'8장. 비모수통계',s:'미완료',dt:''}]},
-  {name:'토익(LC)',color:'#dde8d8',units:[{t:'Part 1. 사진묘사',s:'미완료',dt:''},{t:'Part 2. 질의응답',s:'미완료',dt:''},{t:'Part 3. 짧은 대화',s:'미완료',dt:''},{t:'Part 4. 담화문',s:'미완료',dt:''}]},
-  {name:'토익(RC)',color:'#e8f0e8',units:[{t:'Part 5. 단문공란',s:'미완료',dt:''},{t:'Part 6. 장문공란',s:'미완료',dt:''},{t:'Part 7. 단일지문',s:'미완료',dt:''},{t:'Part 7. 복수지문',s:'미완료',dt:''}]},
-  {name:'대학원준비',color:'#f0e8f0',units:[{t:'연구계획서',s:'미완료',dt:''},{t:'영어 논문 읽기',s:'미완료',dt:''},{t:'면접 준비',s:'미완료',dt:''},{t:'대학원 정보 수집',s:'미완료',dt:''},{t:'스터디 문제 제작',s:'미완료',dt:''}]},
+  {name:'심리학개론',units:[{t:'1장. 심리학이란',s:'미완료',dt:''},{t:'2장. 생물심리학',s:'미완료',dt:''},{t:'3장. 감각과 지각',s:'미완료',dt:''},{t:'4장. 의식',s:'미완료',dt:''},{t:'5장. 학습',s:'미완료',dt:''},{t:'6장. 기억',s:'미완료',dt:''},{t:'7장. 인지',s:'미완료',dt:''},{t:'8장. 동기와 정서',s:'미완료',dt:''},{t:'9장. 발달심리',s:'미완료',dt:''},{t:'10장. 성격',s:'미완료',dt:''},{t:'11장. 사회심리',s:'미완료',dt:''},{t:'12장. 심리검사',s:'미완료',dt:''},{t:'13장. 이상심리',s:'미완료',dt:''},{t:'14장. 치료',s:'미완료',dt:''},{t:'15장. 건강심리',s:'미완료',dt:''}]},
+  {name:'이상심리학',units:[{t:'1장. 이상행동의 이해',s:'미완료',dt:''},{t:'2장. 불안장애',s:'미완료',dt:''},{t:'3장. 강박장애',s:'미완료',dt:''},{t:'4장. 외상장애',s:'미완료',dt:''},{t:'5장. 우울장애',s:'미완료',dt:''},{t:'6장. 양극성장애',s:'미완료',dt:''},{t:'7장. 정신증',s:'미완료',dt:''},{t:'8장. 신체증상장애',s:'미완료',dt:''},{t:'9장. 해리장애',s:'미완료',dt:''},{t:'10장. 섭식장애',s:'미완료',dt:''},{t:'11장. 성격장애',s:'미완료',dt:''},{t:'12장. 물질관련장애',s:'미완료',dt:''},{t:'13장. 신경발달장애',s:'미완료',dt:''}]},
+  {name:'임상심리학',units:[{t:'1장. 임상심리학 개관',s:'미완료',dt:''},{t:'2장. 심리평가',s:'미완료',dt:''},{t:'3장. 심리검사 I',s:'미완료',dt:''},{t:'4장. 심리검사 II',s:'미완료',dt:''},{t:'5장. 심리치료 I',s:'미완료',dt:''},{t:'6장. 심리치료 II',s:'미완료',dt:''},{t:'7장. 아동 임상',s:'미완료',dt:''},{t:'8장. 건강심리',s:'미완료',dt:''},{t:'9장. 법정심리',s:'미완료',dt:''},{t:'10장. 지역사회',s:'미완료',dt:''}]},
+  {name:'인지치료',units:[{t:'1장. 인지치료 기초',s:'미완료',dt:''},{t:'2장. 자동적 사고',s:'미완료',dt:''},{t:'3장. 인지적 오류',s:'미완료',dt:''},{t:'4장. 핵심신념',s:'미완료',dt:''},{t:'5장. 행동실험',s:'미완료',dt:''},{t:'6장. 우울 인지치료',s:'미완료',dt:''},{t:'7장. 불안 인지치료',s:'미완료',dt:''},{t:'8장. 사례개념화',s:'미완료',dt:''}]},
+  {name:'통계학',units:[{t:'1장. 기술통계',s:'미완료',dt:''},{t:'2장. 확률분포',s:'미완료',dt:''},{t:'3장. 추론통계',s:'미완료',dt:''},{t:'4장. t검정',s:'미완료',dt:''},{t:'5장. 분산분석',s:'미완료',dt:''},{t:'6장. 상관분석',s:'미완료',dt:''},{t:'7장. 회귀분석',s:'미완료',dt:''},{t:'8장. 비모수통계',s:'미완료',dt:''}]},
+  {name:'토익(LC)',units:[{t:'Part 1. 사진묘사',s:'미완료',dt:''},{t:'Part 2. 질의응답',s:'미완료',dt:''},{t:'Part 3. 짧은 대화',s:'미완료',dt:''},{t:'Part 4. 담화문',s:'미완료',dt:''}]},
+  {name:'토익(RC)',units:[{t:'Part 5. 단문공란',s:'미완료',dt:''},{t:'Part 6. 장문공란',s:'미완료',dt:''},{t:'Part 7. 단일지문',s:'미완료',dt:''},{t:'Part 7. 복수지문',s:'미완료',dt:''}]},
+  {name:'대학원준비',units:[{t:'연구계획서',s:'미완료',dt:''},{t:'영어 논문 읽기',s:'미완료',dt:''},{t:'면접 준비',s:'미완료',dt:''},{t:'대학원 정보 수집',s:'미완료',dt:''},{t:'스터디 문제 제작',s:'미완료',dt:''}]},
 ];
 
 let userId = '';
@@ -239,26 +283,29 @@ let progress = JSON.parse(JSON.stringify(DEFAULT_PROGRESS));
 let expandedSubj = null;
 let editTarget = null;
 
-// 안전한 텍스트 이스케이프 함수 정의
 function esc(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 과목명에 맞는 10가지 감성 컬러 코드를 매칭하는 헬퍼 함수
+function getSubjectColor(subjName) {
+  if (!subjName || subjName === '과목 입력...') return '#a0a8b0'; // 기본 Slate 색상 분배
+  const index = subjects.indexOf(subjName);
+  if (index === -1) {
+    // 임의 입력 과목의 경우 글자 코드를 계산해 10가지 스펙트럼 내 매칭
+    let hash = 0;
+    for (let i = 0; i < subjName.length; i++) hash = subjName.charCodeAt(i) + ((hash << 5) - hash);
+    return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+  }
+  return COLOR_PALETTE[index % COLOR_PALETTE.length];
 }
 
 function setStatus(msg, ok=false) {
   const el = document.getElementById('status');
-  if(el) {
-    el.textContent = msg;
-    el.className = ok ? 'ok' : '';
-  }
+  if(el) { el.textContent = msg; el.className = ok ? 'ok' : ''; }
 }
 
-// 탭 전환 기능 추가
 function showTab(tabName) {
   document.querySelectorAll('#app > div[id^="tab-"]').forEach(div => div.style.display = 'none');
   const targetTab = document.getElementById('tab-' + tabName);
@@ -273,16 +320,9 @@ function showTab(tabName) {
   if(tabName === 'stats') renderStats();
 }
 
-// ── Supabase 저장/불러오기
 async function sbGet(key) {
   try {
-    const { data, error } = await sb.from('planner_data')
-      .select('content')
-      .eq('user_id', userId)
-      .eq('week_key', key)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const { data, error } = await sb.from('planner_data').select('content').eq('user_id', userId).eq('week_key', key).order('created_at', { ascending: false }).limit(1).single();
     if (error) return null;
     return data ? JSON.parse(data.content) : null;
   } catch(e) { return null; }
@@ -291,13 +331,11 @@ async function sbGet(key) {
 async function sbSet(key, obj) {
   try {
     const content = JSON.stringify(obj);
-    const { error } = await sb.from('planner_data')
-      .insert([{ user_id: userId, week_key: key, content: content }]);
+    const { error } = await sb.from('planner_data').insert([{ user_id: userId, week_key: key, content: content }]);
     return !error;
   } catch(e) { return false; }
 }
 
-// ── 로그인
 async function doLogin() {
   const v = document.getElementById('login-input').value.trim();
   if (!v) return;
@@ -307,19 +345,17 @@ async function doLogin() {
   document.getElementById('app').style.display = 'block';
 
   setStatus('🔄 불러오는 중...');
-  await loadWeek();
   const savedSubj = await sbGet('__subjects__');
   if (savedSubj && savedSubj.list) subjects = savedSubj.list;
   const savedProg = await sbGet('__progress__');
   if (savedProg && savedProg.data) progress = savedProg.data;
-
-  renderPlanner();
+  
+  await loadWeek();
   renderSubjects();
   renderProgress();
   setStatus('✅ 연결됨', true);
 }
 
-// ── 데이터 수집 (DOM에서 직접 읽기)
 function captureData() {
   const data = { days: {}, weekMemo: [] };
   DAYS.forEach(day => {
@@ -354,7 +390,6 @@ function captureData() {
   return data;
 }
 
-// ── 저장
 async function saveData() {
   setStatus('💾 저장 중...');
   const data = captureData();
@@ -364,7 +399,6 @@ async function saveData() {
   setTimeout(() => setStatus(ok ? '✅ 연결됨' : '⚠️ 로컬모드', ok), 3000);
 }
 
-// ── 불러오기
 async function loadWeek() {
   const key = curMonth + '_' + curWeek;
   let data = await sbGet(key);
@@ -379,7 +413,6 @@ function applyData(data) {
   renderPlanner(data);
 }
 
-// ── 월/주 변경
 function onWeekChange() {
   curMonth = document.getElementById('month-sel').value;
   loadAndRender();
@@ -396,7 +429,6 @@ async function loadAndRender() {
   setStatus('✅ 연결됨', true);
 }
 
-// ── 플래너 렌더링
 function renderPlanner(data) {
   const wrap = document.getElementById('planner-wrap');
   let html = '<div class="days-row">';
@@ -406,20 +438,21 @@ function renderPlanner(data) {
     const blocks = d.blocks && d.blocks.length ? d.blocks : [{subject:'',time:'',tasks:[{text:'',done:false},{text:'',done:false},{text:'',done:false}]}];
 
     html += '<div class="day-col">';
-    html += '<div class="day-header" style="background:' + day.color + '">' + day.label + '</div>';
+    html += '<div class="day-header">' + day.label + '</div>';
     html += '<div class="day-body">';
     html += '<input class="day-date" id="date-' + day.id + '" placeholder="날짜 (예: 5/25)" value="' + esc(d.date||'') + '">';
-    html += '<div class="day-hours"><span>공부시간(h):</span><input id="hours-' + day.id + '" placeholder="3.5" value="' + esc(d.hours||'') + '"></div>';
+    html += '<div class="day-hours"><span>공부시간:</span><input id="hours-' + day.id + '" placeholder="- h" value="' + esc(d.hours||'') + '"></div>';
 
     blocks.forEach((block, bi) => {
       const pct = calcBlockPct(block.tasks);
+      const currentBlockBg = getSubjectColor(block.subject); // 과목 고유 컬러 매칭
+
       html += '<div class="block" data-day="' + day.id + '" data-bi="' + bi + '">';
-      html += '<div class="block-header" style="background:' + day.color + '" onclick="openModal(\'' + day.id + '\',' + bi + ')">';
-      html += '● <span class="block-subject">' + esc(block.subject || '과목 입력...') + '</span>';
+      html += '<div class="block-header" style="background:' + currentBlockBg + '" onclick="openModal(\'' + day.id + '\',' + bi + ')">';
+      html += '<span class="block-subject">' + esc(block.subject || '과목 입력...') + '</span>';
       if (block.time) html += '<span class="block-time">(' + esc(block.time) + ')</span>';
       if (pct !== null) html += '<span class="pct-badge">' + pct + '%</span>';
-      html += ' <span style="font-size:9px;color:#ccc">✏️</span>';
-      if (blocks.length > 1) html += '<span style="font-size:9px;color:#ddd;margin-left:auto" onclick="event.stopPropagation();removeBlock(\'' + day.id + '\',' + bi + ')">✕</span>';
+      if (blocks.length > 1) html += '<span style="font-size:10px;color:rgba(255,255,255,0.6);margin-left:auto" onclick="event.stopPropagation();removeBlock(\'' + day.id + '\',' + bi + ')">✕</span>';
       html += '</div>';
       html += '<div class="todo-list">';
       (block.tasks || []).forEach((task, ti) => {
@@ -431,7 +464,7 @@ function renderPlanner(data) {
         html += '</div>';
       });
       html += '</div>';
-      html += '<button class="btn-add-todo" onclick="addTodo(\'' + day.id + '\',' + bi + ')">+ 항목</button>';
+      html += '<button class="btn-add-todo" onclick="addTodo(\'' + day.id + '\',' + bi + ')">+ 항목 추가</button>';
       html += '</div>';
     });
 
@@ -442,8 +475,7 @@ function renderPlanner(data) {
 
   html += '</div>';
 
-  // 주간 메모
-  html += '<div class="week-memo-wrap"><div class="week-memo-title">📝 주간 메모</div><div class="week-memo-grid">';
+  html += '<div class="week-memo-wrap"><div class="week-memo-title">📝 주간 종합 피드백</div><div class="week-memo-grid">';
   MEMO_LABELS.forEach((label, i) => {
     const val = data && data.weekMemo && data.weekMemo[i] ? data.weekMemo[i] : '';
     html += '<div class="week-memo-box"><label>' + label + '</label>';
@@ -482,9 +514,7 @@ function addTodo(dayId, bi) {
   list.appendChild(div);
 }
 
-function removeTodo(btn) {
-  btn.parentElement.remove();
-}
+function removeTodo(btn) { btn.parentElement.remove(); }
 
 function addBlock(dayId) {
   const data = captureData();
@@ -501,7 +531,6 @@ function removeBlock(dayId, bi) {
   }
 }
 
-// ── 모달
 function openModal(dayId, bi) {
   editTarget = { dayId, bi };
   const blocks = document.querySelectorAll('.block[data-day="' + dayId + '"]');
@@ -514,9 +543,10 @@ function openModal(dayId, bi) {
   document.getElementById('modal-time').value = time;
 
   const tagsEl = document.getElementById('modal-tags');
-  tagsEl.innerHTML = subjects.map(s =>
-    '<button class="subj-tag' + (cleanSubj===s?' selected':'') + '" onclick="selectTag(this,\'' + esc(s) + '\')">' + esc(s) + '</button>'
-  ).join('');
+  tagsEl.innerHTML = subjects.map(s => {
+    const tagColor = getSubjectColor(s);
+    return '<button class="subj-tag' + (cleanSubj===s?' selected':'') + '" style="border-left: 4px solid ' + tagColor + '" onclick="selectTag(this,\'' + esc(s) + '\')">' + esc(s) + '</button>';
+  }).join('');
 
   document.getElementById('modal-bg').classList.add('open');
   document.getElementById('modal-subj').focus();
@@ -528,43 +558,32 @@ function selectTag(el, name) {
   document.getElementById('modal-subj').value = name;
 }
 
-function closeModal() {
-  document.getElementById('modal-bg').classList.remove('open');
-  editTarget = null;
-}
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); editTarget = null; }
 
 function closeModalConfirm() {
   if (!editTarget) return;
   const { dayId, bi } = editTarget;
   const subj = document.getElementById('modal-subj').value.trim();
   const time = document.getElementById('modal-time').value.trim();
-  const blocks = document.querySelectorAll('.block[data-day="' + dayId + '"]');
-  const block = blocks[bi];
-  if (block) {
-    block.querySelector('.block-subject').textContent = subj || '과목 입력...';
-    let timeEl = block.querySelector('.block-time');
-    if (time) {
-      if (!timeEl) {
-        timeEl = document.createElement('span');
-        timeEl.className = 'block-time';
-        block.querySelector('.block-header').insertBefore(timeEl, block.querySelector('.pct-badge') || block.querySelector('.btn-del-todo') || null);
-      }
-      timeEl.textContent = '(' + time + ')';
-    } else if (timeEl) {
-      timeEl.remove();
-    }
+  
+  // 데이터 동적 리렌더링 방식으로 색상 일관성 유지
+  const data = captureData();
+  if (data.days[dayId] && data.days[dayId].blocks[bi]) {
+    data.days[dayId].blocks[bi].subject = subj || '과목 입력...';
+    data.days[dayId].blocks[bi].time = time;
   }
+  renderPlanner(data);
   closeModal();
 }
 
-// ── 과목 관리
 function renderSubjects() {
   const list = document.getElementById('subjects-list');
-  list.innerHTML = subjects.map((s, i) =>
-    '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0">' +
-    '<span style="flex:1;font-size:13px">' + esc(s) + '</span>' +
-    '<button onclick="removeSubject(' + i + ')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px">✕</button></div>'
-  ).join('');
+  list.innerHTML = subjects.map((s, i) => {
+    const color = getSubjectColor(s);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #edf2f7; background:#fff; margin-bottom:4px; border-radius:6px; border-left:5px solid '+color+'">' +
+    '<span style="flex:1;font-size:12px;font-weight:700;">' + esc(s) + '</span>' +
+    '<button onclick="removeSubject(' + i + ')" style="background:none;border:none;color:#cbd5e0;cursor:pointer;font-size:14px">✕</button></div>';
+  }).join('');
 }
 
 async function addSubject() {
@@ -582,52 +601,53 @@ async function removeSubject(i) {
   renderSubjects();
 }
 
-// ── 진도관리
 function renderProgress() {
   const wrap = document.getElementById('progress-wrap');
   let html = '<div class="progress-summary">';
   progress.forEach((subj, si) => {
     const total = subj.units.length, done = subj.units.filter(u => u.s==='완료').length;
     const pct = total ? Math.round(done/total*100) : 0;
-    const color = pct>=80?'#2f855a':pct>=50?'#2b6cb0':'#d97706';
+    const color = getSubjectColor(subj.name); // 과목 컬러매칭 함수 연동
+    
     html += '<div class="progress-card" onclick="toggleSubj(' + si + ')">';
-    html += '<div class="name">' + esc(subj.name) + '</div>';
+    html += '<div class="name" style="background:' + color + '">' + esc(subj.name) + '</div>';
     html += '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>';
-    html += '<div class="pct">' + done + '/' + total + ' · ' + pct + '%</div></div>';
+    html += '<div class="pct">' + done + '/' + total + ' 개의 대단원 완료 (' + pct + '%)</div></div>';
   });
   html += '</div>';
 
   progress.forEach((subj, si) => {
     const total = subj.units.length, done = subj.units.filter(u => u.s==='완료').length;
     const pct = total ? Math.round(done/total*100) : 0;
+    const color = getSubjectColor(subj.name);
+
     html += '<div class="subj-detail">';
-    html += '<div class="subj-detail-header" style="background:' + subj.color + '" onclick="toggleSubj(' + si + ')">';
-    html += '<span class="name">▶ ' + esc(subj.name) + '</span>';
-    html += '<span style="font-size:10px;color:#2f855a;font-weight:700">완료 ' + done + '</span>';
-    html += '<span style="font-size:11px;font-weight:700"> ' + pct + '%</span></div>';
+    html += '<div class="subj-detail-header" style="background:' + color + '" onclick="toggleSubj(' + si + ')">';
+    html += '<span class="name">▶ ' + esc(subj.name) + ' 상세 정보</span>';
+    html += '<span style="font-size:11px;font-weight:700;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;">달성률 ' + pct + '%</span></div>';
 
     if (expandedSubj === si) {
-      html += '<table class="unit-table"><tr><th>단원명</th><th>상태</th><th>완료일</th><th></th></tr>';
+      html += '<table class="unit-table"><tr><th>진도 대단원 목표 세부항목</th><th>학습 상태</th><th>최종 완료일자</th><th>삭제</th></tr>';
       subj.units.forEach((u, ui) => {
         html += '<tr style="background:' + (ui%2===0?'#fff':'#fafafa') + '">';
-        html += '<td>' + esc(u.t) + '</td>';
-        html += '<td><select onchange="updateUnit(' + si + ',' + ui + ',this.value)" style="color:' + getStatusColor(u.s) + '">';
+        html += '<td style="font-weight:600;">' + esc(u.t) + '</td>';
+        html += '<td><select onchange="updateUnit(' + si + ',' + ui + ',this.value)" style="color:' + getStatusColor(u.s) + '; border-color:'+color+'">';
         ['미완료','진행중','완료'].forEach(s => html += '<option' + (u.s===s?' selected':'') + '>' + s + '</option>');
         html += '</select></td>';
-        html += '<td style="color:#aaa;font-size:10px">' + esc(u.dt||'') + '</td>';
-        html += '<td><span style="cursor:pointer;color:#ddd" onclick="removeUnit(' + si + ',' + ui + ')">✕</span></td></tr>';
+        html += '<td style="color:#718096;font-size:10px;font-weight:600;">' + esc(u.dt||'-') + '</td>';
+        html += '<td><span style="cursor:pointer;color:#cbd5e0;font-weight:700;" onclick="removeUnit(' + si + ',' + ui + ')">✕</span></td></tr>';
       });
       html += '</table>';
       html += '<div class="add-unit-row">';
-      html += '<input type="text" id="unit-' + si + '" placeholder="단원명">';
-      html += '<button onclick="addUnit(' + si + ')">추가</button></div>';
+      html += '<input type="text" id="unit-' + si + '" placeholder="단원 및 진도 추가 입력">';
+      html += '<button onclick="addUnit(' + si + ')" style="background:'+color+'">단원 추가</button></div>';
     }
     html += '</div>';
   });
   wrap.innerHTML = html;
 }
 
-function getStatusColor(s) { return s==='완료'?'#2f855a':s==='진행중'?'#2b6cb0':'#aaa'; }
+function getStatusColor(s) { return s==='완료'?'#4a7c59':s==='진행중'?'#2b6cb0':'#a0aec0'; }
 function toggleSubj(si) { expandedSubj = expandedSubj===si ? null : si; renderProgress(); }
 
 async function updateUnit(si, ui, status) {
@@ -651,7 +671,6 @@ async function addUnit(si) {
   renderProgress();
 }
 
-// ── 성취통계 완벽 구현 (잘렸던 로직 복구)
 async function renderStats() {
   const wrap = document.getElementById('stats-wrap');
   if(!wrap) return;
@@ -665,23 +684,24 @@ async function renderStats() {
   DAYS.forEach(day => {
     const d = data && data.days && data.days[day.id] ? data.days[day.id] : { date:'', hours:'', blocks:[] };
     const hours = parseFloat(d.hours) || 0;
-    if(hours > 0) {
-      totalHours += hours;
-      dayCount++;
-    }
+    if(hours > 0) { totalHours += hours; dayCount++; }
 
     let dailySubjs = [];
     (d.blocks || []).forEach(b => {
       if(b.subject && b.subject !== '과목 입력...') dailySubjs.push(b.subject);
     });
-    const subjsStr = dailySubjs.length ? dailySubjs.join(', ') : '-';
+    
+    const subjsHtml = dailySubjs.length ? dailySubjs.map(s => {
+      const c = getSubjectColor(s);
+      return `<span style="background:${c}; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-right:4px; display:inline-block; text-shadow:0 1px 1px rgba(0,0,0,0.1);">${esc(s)}</span>`;
+    }).join('') : '<span style="color:#a0aec0">-</span>';
 
     tableRowsHtml += `
       <tr>
-        <td style="text-align:center; font-weight:700;">${day.label.split(' ')[0]}</td>
-        <td style="text-align:center;">${esc(d.date || '-')}</td>
-        <td style="text-align:center; font-weight:700; color:#2b6cb0;">${hours > 0 ? hours + ' h' : '-'}</td>
-        <td>${esc(subjsStr)}</td>
+        <td style="text-align:center; font-weight:800; color:#4a5568;">${day.label.split(' ')[0]}</td>
+        <td style="text-align:center; color:#718096; font-weight:600;">${esc(d.date || '-')}</td>
+        <td style="text-align:center; font-weight:800; color:#2b6cb0; font-size:12px;">${hours > 0 ? hours + ' h' : '-'}</td>
+        <td>${subjsHtml}</td>
       </tr>
     `;
   });
@@ -690,29 +710,29 @@ async function renderStats() {
 
   wrap.innerHTML = `
     <div class="summary-cards">
-      <div class="summary-card">
-        <div class="label">총 공부 시간</div>
-        <div class="val" style="color:#2f855a;">${totalHours.toFixed(1)} h</div>
+      <div class="summary-card" style="border-top: 4px solid #4a7c59;">
+        <div class="label">총 공부 시간 누적</div>
+        <div class="val" style="color:#4a7c59;">${totalHours.toFixed(1)} h</div>
       </div>
-      <div class="summary-card">
-        <div class="label">공부한 일수</div>
+      <div class="summary-card" style="border-top: 4px solid #2b6cb0;">
+        <div class="label">실제 공부한 일수</div>
         <div class="val" style="color:#2b6cb0;">${dayCount} 일</div>
       </div>
-      <div class="summary-card">
-        <div class="label">하루 평균 (공부일 기준)</div>
-        <div class="val" style="color:#d97706;">${avgHours} h</div>
+      <div class="summary-card" style="border-top: 4px solid #c09878;">
+        <div class="label">일평균 시간 (공부일 기준)</div>
+        <div class="val" style="color:#c09878;">${avgHours} h</div>
       </div>
     </div>
     
-    <div style="background:#fff; border:1px solid #bbb; border-radius:4px; overflow:hidden;">
-      <div style="background:#333; color:#fff; font-weight:700; padding:8px 12px; font-size:12px;">📊 주간 기록 요약 (${curMonth} ${curWeek})</div>
-      <table class="stats-table" style="width:100%; border:none; margin-bottom:0;">
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.01);">
+      <div style="background:#2a2d32; color:#fff; font-weight:700; padding:10px 16px; font-size:12px;">📊 주간 기록 총평 및 통계 보고서 (${curMonth} ${curWeek})</div>
+      <table class="stats-table" style="width:100%; margin-bottom:0;">
         <thead>
           <tr>
-            <th style="width:15%;">요일</th>
-            <th style="width:20%;">날짜</th>
-            <th style="width:20%;">공부시간</th>
-            <th style="width:45%;">학습 과목</th>
+            <th style="width:15%; text-align:center;">요일</th>
+            <th style="width:20%; text-align:center;">날짜</th>
+            <th style="width:20%; text-align:center;">공부시간</th>
+            <th style="width:45%;">집중 학습 과목군</th>
           </tr>
         </thead>
         <tbody>
