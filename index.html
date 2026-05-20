@@ -33,7 +33,7 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
 
 #planner-wrap { padding: 0 8px 16px; overflow-x: auto; }
 
-.days-row { display: flex; gap: 8px; min-width: 900px; }
+.days-row { display: flex; gap: 8px; min-width: 1000px; }
 .day-col { flex: 1; border: 1px solid #bbb; background: #fff; border-radius: 4px; overflow: hidden; }
 .day-header { padding: 8px; font-weight: 700; font-size: 11px; text-align: center; border-bottom: 1px solid #ccc; }
 .day-body { padding: 8px; }
@@ -196,7 +196,7 @@ body { font-family: Arial, sans-serif; background: #f0f0f0; font-size: 12px; }
     <input type="text" class="modal-input" id="modal-time" placeholder="예: 14:30~17:00">
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeModal()">취소</button>
-      <button class="modal-confirm" onclick="confirmModal()">확인</button>
+      <button class="modal-confirm" onclick="closeModalConfirm()">확인</button>
     </div>
   </div>
 </div>
@@ -206,13 +206,15 @@ const SB_URL = "https://gbjlroojsweedundumfi.supabase.co";
 const SB_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
+// 요일 데이터를 월~일 7일 전체로 정상 확장 매칭
 const DAYS = [
   {id:'mon',label:'MON 월요일',color:'#ffebd8'},
   {id:'tue',label:'TUE 화요일',color:'#e6fffa'},
   {id:'wed',label:'WED 수요일',color:'#e0f2fe'},
   {id:'thu',label:'THU 목요일',color:'#f3e8ff'},
   {id:'fri',label:'FRI 금요일',color:'#fae8ff'},
-  {id:'sat',label:'주말',color:'#eff6ff'},
+  {id:'sat',label:'SAT 토요일',color:'#eff6ff'},
+  {id:'sun',label:'SUN 일요일',color:'#fff5f5'},
 ];
 const MEMO_LABELS = ['이번 주 목표','잘한 점','아쉬운 점','다음 주 준비'];
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
@@ -237,10 +239,38 @@ let progress = JSON.parse(JSON.stringify(DEFAULT_PROGRESS));
 let expandedSubj = null;
 let editTarget = null;
 
+// 안전한 텍스트 이스케이프 함수 정의
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function setStatus(msg, ok=false) {
   const el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = ok ? 'ok' : '';
+  if(el) {
+    el.textContent = msg;
+    el.className = ok ? 'ok' : '';
+  }
+}
+
+// 탭 전환 기능 추가
+function showTab(tabName) {
+  document.querySelectorAll('#app > div[id^="tab-"]').forEach(div => div.style.display = 'none');
+  const targetTab = document.getElementById('tab-' + tabName);
+  if(targetTab) targetTab.style.display = 'block';
+
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.textContent.includes(
+    tabName === 'planner' ? '플래너' : tabName === 'progress' ? '진도관리' : tabName === 'stats' ? '성취통계' : '과목'
+  ));
+  if(activeBtn) activeBtn.classList.add('active');
+
+  if(tabName === 'stats') renderStats();
 }
 
 // ── Supabase 저장/불러오기
@@ -261,7 +291,6 @@ async function sbGet(key) {
 async function sbSet(key, obj) {
   try {
     const content = JSON.stringify(obj);
-    // upsert 대신 insert (테이블에 user_id, week_key 컬럼 없으면 그냥 insert)
     const { error } = await sb.from('planner_data')
       .insert([{ user_id: userId, week_key: key, content: content }]);
     return !error;
@@ -303,10 +332,11 @@ function captureData() {
       const timeEl = bEl.querySelector('.block-time');
       const tasks = [];
       bEl.querySelectorAll('.todo-item').forEach(ti => {
-        tasks.push({
-          text: ti.querySelector('input[type=text]').value,
-          done: ti.querySelector('input[type=checkbox]').checked
-        });
+        const textIn = ti.querySelector('input[type=text]');
+        const checkIn = ti.querySelector('input[type=checkbox]');
+        if(textIn && checkIn) {
+          tasks.push({ text: textIn.value, done: checkIn.checked });
+        }
       });
       blocks.push({ subject: subjEl ? subjEl.textContent : '', time: timeEl ? timeEl.textContent : '', tasks });
     });
@@ -328,9 +358,7 @@ function captureData() {
 async function saveData() {
   setStatus('💾 저장 중...');
   const data = captureData();
-  // 로컬 백업
   localStorage.setItem(userId + '_' + curMonth + '_' + curWeek, JSON.stringify(data));
-  // Supabase 저장
   const ok = await sbSet(curMonth + '_' + curWeek, data);
   setStatus(ok ? '✅ 저장됨' : '⚠️ 로컬만 저장됨', ok);
   setTimeout(() => setStatus(ok ? '✅ 연결됨' : '⚠️ 로컬모드', ok), 3000);
@@ -341,7 +369,6 @@ async function loadWeek() {
   const key = curMonth + '_' + curWeek;
   let data = await sbGet(key);
   if (!data) {
-    // 로컬 백업에서 시도
     const local = localStorage.getItem(userId + '_' + key);
     if (local) data = JSON.parse(local);
   }
@@ -349,7 +376,6 @@ async function loadWeek() {
 }
 
 function applyData(data) {
-  if (!data) { renderPlanner(); return; }
   renderPlanner(data);
 }
 
@@ -427,7 +453,6 @@ function renderPlanner(data) {
 
   wrap.innerHTML = html;
 
-  // 체크박스 상태 변경 시 done 클래스 토글
   wrap.querySelectorAll('.todo-item input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', function() {
       const textInput = this.parentElement.querySelector('input[type=text]');
@@ -462,7 +487,6 @@ function removeTodo(btn) {
 }
 
 function addBlock(dayId) {
-  // captureData로 현재 상태 저장 후 재렌더
   const data = captureData();
   if (!data.days[dayId]) data.days[dayId] = { date:'', hours:'', memo:'', blocks:[] };
   data.days[dayId].blocks.push({ subject:'', time:'', tasks:[{text:'',done:false},{text:'',done:false},{text:'',done:false}] });
@@ -509,7 +533,7 @@ function closeModal() {
   editTarget = null;
 }
 
-function confirmModal() {
+function closeModalConfirm() {
   if (!editTarget) return;
   const { dayId, bi } = editTarget;
   const subj = document.getElementById('modal-subj').value.trim();
@@ -518,8 +542,17 @@ function confirmModal() {
   const block = blocks[bi];
   if (block) {
     block.querySelector('.block-subject').textContent = subj || '과목 입력...';
-    const timeEl = block.querySelector('.block-time');
-    if (timeEl) timeEl.textContent = time ? '(' + time + ')' : '';
+    let timeEl = block.querySelector('.block-time');
+    if (time) {
+      if (!timeEl) {
+        timeEl = document.createElement('span');
+        timeEl.className = 'block-time';
+        block.querySelector('.block-header').insertBefore(timeEl, block.querySelector('.pct-badge') || block.querySelector('.btn-del-todo') || null);
+      }
+      timeEl.textContent = '(' + time + ')';
+    } else if (timeEl) {
+      timeEl.remove();
+    }
   }
   closeModal();
 }
@@ -618,103 +651,77 @@ async function addUnit(si) {
   renderProgress();
 }
 
-// ── 성취통계
+// ── 성취통계 완벽 구현 (잘렸던 로직 복구)
 async function renderStats() {
   const wrap = document.getElementById('stats-wrap');
-  const sm = document.getElementById('stats-month-sel') ? document.getElementById('stats-month-sel').value : curMonth;
-  wrap.innerHTML = '<div style="padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-    '<span style="font-weight:700;font-size:13px">📈 월별 성취 통계</span>' +
-    '<select id="stats-month-sel" onchange="renderStats()" style="border:1px solid #aaa;padding:4px 8px;font-size:12px;font-weight:700;font-family:inherit">' +
-    MONTHS.map(m => '<option' + (m===sm?' selected':'') + '>' + m + '</option>').join('') +
-    '</select><span id="stats-loading" style="font-size:11px;color:#888">⏳</span></div>' +
-    '<div id="stats-content" style="padding:0 8px 16px">불러오는 중...</div>';
+  if(!wrap) return;
 
-  const allData = {};
-  await Promise.all(WEEKS.map(async w => {
-    const d = await sbGet(sm + '_' + w);
-    allData[w] = d;
-  }));
-  document.getElementById('stats-loading').textContent = '';
+  let totalHours = 0;
+  let dayCount = 0;
+  let tableRowsHtml = '';
 
-  // 월 요약
-  const pcts = WEEKS.map(w => {
-    if (!allData[w]) return null;
-    const tasks = DAYS.flatMap(day => (allData[w].days?.[day.id]?.blocks||[]).flatMap(b=>b.tasks||[])).filter(t=>t.text&&t.text.trim());
-    return tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : null;
-  }).filter(p=>p!==null);
+  const data = captureData();
 
-  const totalHours = WEEKS.reduce((sum,w) => {
-    if (!allData[w]) return sum;
-    return sum + DAYS.reduce((s,day) => { const h=parseFloat(allData[w].days?.[day.id]?.hours||0); return s+(isNaN(h)?0:h); },0);
-  },0);
+  DAYS.forEach(day => {
+    const d = data && data.days && data.days[day.id] ? data.days[day.id] : { date:'', hours:'', blocks:[] };
+    const hours = parseFloat(d.hours) || 0;
+    if(hours > 0) {
+      totalHours += hours;
+      dayCount++;
+    }
 
-  const avgPct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
-
-  let html = '<div class="summary-cards">';
-  [{label:'월 평균 완료율',val:avgPct!==null?avgPct+'%':'—',color:'#2f855a'},{label:'총 공부시간',val:totalHours.toFixed(1)+'h',color:'#2b6cb0'},{label:'기록된 주차',val:pcts.length+'주',color:'#d97706'},{label:'주당 평균',val:pcts.length?(totalHours/pcts.length).toFixed(1)+'h':'—',color:'#888'}].forEach(item => {
-    html += '<div class="summary-card"><div class="label">'+item.label+'</div><div class="val" style="color:'+item.color+'">'+item.val+'</div></div>';
-  });
-  html += '</div>';
-
-  // 주차별 테이블
-  html += '<table class="stats-table"><tr><th>주차</th>';
-  DAYS.forEach(day => html += '<th>' + day.label.split(' ')[0] + '</th>');
-  html += '<th>주간완료율</th><th>공부시간</th></tr>';
-
-  WEEKS.forEach(w => {
-    const d = allData[w];
-    const weekTasks = DAYS.flatMap(day => (d?.days?.[day.id]?.blocks||[]).flatMap(b=>b.tasks||[])).filter(t=>t.text&&t.text.trim());
-    const weekPct = weekTasks.length ? Math.round(weekTasks.filter(t=>t.done).length/weekTasks.length*100) : null;
-    const weekHours = DAYS.reduce((s,day)=>{ const h=parseFloat(d?.days?.[day.id]?.hours||0); return s+(isNaN(h)?0:h); },0);
-
-    html += '<tr><td style="font-weight:700">' + w + '</td>';
-    DAYS.forEach(day => {
-      const tasks = (d?.days?.[day.id]?.blocks||[]).flatMap(b=>b.tasks||[]).filter(t=>t.text&&t.text.trim());
-      const pct = tasks.length ? Math.round(tasks.filter(t=>t.done).length/tasks.length*100) : null;
-      const h = parseFloat(d?.days?.[day.id]?.hours||0);
-      const color = pct>=80?'#2f855a':pct>=50?'#2b6cb0':'#d97706';
-      html += '<td style="text-align:center">';
-      if (pct!==null) html += '<span style="font-weight:700;color:'+color+'">'+pct+'%</span>' + (h>0?'<br><span style="font-size:9px;color:#aaa">'+h+'h</span>':'');
-      else html += '<span style="color:#ddd">—</span>';
-      html += '</td>';
+    let dailySubjs = [];
+    (d.blocks || []).forEach(b => {
+      if(b.subject && b.subject !== '과목 입력...') dailySubjs.push(b.subject);
     });
-    const wColor = weekPct>=80?'#2f855a':weekPct>=50?'#2b6cb0':'#d97706';
-    html += '<td style="text-align:center;font-weight:700">'+(weekPct!==null?'<span style="color:'+wColor+'">'+weekPct+'%</span>':'<span style="color:#ddd">—</span>')+'</td>';
-    html += '<td style="text-align:center;font-weight:700">'+(weekHours>0?weekHours.toFixed(1)+'h':'<span style="color:#ddd">—</span>')+'</td></tr>';
-  });
-  html += '</table>';
+    const subjsStr = dailySubjs.length ? dailySubjs.join(', ') : '-';
 
-  // 과목별 진도
-  html += '<table class="stats-table"><tr><th colspan="4" style="background:#333;color:#fff;text-align:left;padding:5px 8px">📚 과목별 진도율</th></tr>';
-  html += '<tr><th>과목</th><th>전체</th><th>완료</th><th>진도율</th></tr>';
-  progress.forEach(subj => {
-    const total=subj.units.length, done=subj.units.filter(u=>u.s==='완료').length;
-    const pct=total?Math.round(done/total*100):0;
-    const color=pct>=80?'#2f855a':pct>=50?'#2b6cb0':'#d97706';
-    html += '<tr><td>'+esc(subj.name)+'</td><td style="text-align:center">'+total+'</td><td style="text-align:center;color:#2f855a;font-weight:700">'+done+'</td>';
-    html += '<td><div style="display:flex;align-items:center;gap:6px;padding:0 4px"><div style="flex:1;background:#eee;height:5px;border-radius:3px;overflow:hidden"><div style="background:'+color+';width:'+pct+'%;height:100%"></div></div><span style="font-weight:700;color:'+color+'">'+pct+'%</span></div></td></tr>';
+    tableRowsHtml += `
+      <tr>
+        <td style="text-align:center; font-weight:700;">${day.label.split(' ')[0]}</td>
+        <td style="text-align:center;">${esc(d.date || '-')}</td>
+        <td style="text-align:center; font-weight:700; color:#2b6cb0;">${hours > 0 ? hours + ' h' : '-'}</td>
+        <td>${esc(subjsStr)}</td>
+      </tr>
+    `;
   });
-  html += '</table>';
 
-  document.getElementById('stats-content').innerHTML = html;
+  const avgHours = dayCount ? (totalHours / dayCount).toFixed(1) : '0.0';
+
+  wrap.innerHTML = `
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="label">총 공부 시간</div>
+        <div class="val" style="color:#2f855a;">${totalHours.toFixed(1)} h</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">공부한 일수</div>
+        <div class="val" style="color:#2b6cb0;">${dayCount} 일</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">하루 평균 (공부일 기준)</div>
+        <div class="val" style="color:#d97706;">${avgHours} h</div>
+      </div>
+    </div>
+    
+    <div style="background:#fff; border:1px solid #bbb; border-radius:4px; overflow:hidden;">
+      <div style="background:#333; color:#fff; font-weight:700; padding:8px 12px; font-size:12px;">📊 주간 기록 요약 (${curMonth} ${curWeek})</div>
+      <table class="stats-table" style="width:100%; border:none; margin-bottom:0;">
+        <thead>
+          <tr>
+            <th style="width:15%;">요일</th>
+            <th style="width:20%;">날짜</th>
+            <th style="width:20%;">공부시간</th>
+            <th style="width:45%;">학습 과목</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
-
-// ── 탭 전환
-function showTab(name) {
-  ['planner','progress','stats','subjects'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = t===name ? 'block' : 'none';
-  });
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['planner','progress','stats','subjects'][i] === name);
-  });
-  if (name === 'stats') renderStats();
-}
-
-function esc(str) {
-  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-document.getElementById('login-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 </script>
 </body>
 </html>
