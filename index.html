@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📖 스터디 플래너</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: Arial, sans-serif; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+
+const SUPABASE_URL = "https://gbjlroojsweedundumfi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VRGqUrURUfbtW63olLBNhw_VtdKKIFN";
+
+const WEEK_COLS = [
+  { id:"mon", label:"MON 월요일", sub:"", color:"#fde8d8" },
+  { id:"tue", label:"TUE 화요일", sub:"", color:"#d8f0e8" },
+  { id:"wed", label:"WED 수요일", sub:"", color:"#d8eaf0" },
+  { id:"thu", label:"THU 목요일", sub:"", color:"#ead8f0" },
+  { id:"fri", label:"FRI 금요일", sub:"", color:"#f0ead8" },
+  { id:"sat", label:"주말",       sub:"", color:"#dde8d8" },
+];
+const MEMO_LABELS = ["이번 주 목표","잘한 점","아쉬운 점","다음 주 준비"];
+const MONTHS = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const WEEKS  = ["1주차","2주차","3주차","4주차","5주차"];
+const STATUS_OPTIONS = ["미완료","진행중","완료"];
+const STATUS_COLORS  = { "완료":"#4a7c59","진행중":"#5b8db8","미완료":"#aaa" };
+const DEFAULT_TASKS  = 5; // 기본 체크박스 행 수
+
+const DEFAULT_SUBJECTS = [
+  { name:"심리학개론", color:"#fde8d8", units:[
+    {title:"1장. 심리학이란",detail:"심리학의 정의, 역사",status:"미완료",date:""},
+    {title:"2장. 생물심리학",detail:"뇌와 행동",status:"미완료",date:""},
+    {title:"3장. 감각과 지각",detail:"감각기관, 지각 원리",status:"미완료",date:""},
+    {title:"4장. 의식",detail:"수면, 꿈, 의식 상태",status:"미완료",date:""},
+    {title:"5장. 학습",detail:"고전적/조작적 조건형성",status:"미완료",date:""},
+    {title:"6장. 기억",detail:"단기/장기 기억, 망각",status:"미완료",date:""},
+    {title:"7장. 인지",detail:"사고, 언어, 문제해결",status:"미완료",date:""},
+    {title:"8장. 동기와 정서",detail:"동기이론, 정서이론",status:"미완료",date:""},
+    {title:"9장. 발달심리",detail:"인지발달, 사회발달",status:"미완료",date:""},
+    {title:"10장. 성격",detail:"성격이론",status:"미완료",date:""},
+    {title:"11장. 사회심리",detail:"태도, 집단, 편견",status:"미완료",date:""},
+    {title:"12장. 심리검사",detail:"지능, 성격검사",status:"미완료",date:""},
+    {title:"13장. 이상심리",detail:"DSM 분류",status:"미완료",date:""},
+    {title:"14장. 치료",detail:"심리치료 종류",status:"미완료",date:""},
+    {title:"15장. 건강심리",detail:"스트레스, 건강",status:"미완료",date:""},
+  ]},
+  { name:"이상심리학", color:"#d8f0e8", units:[
+    {title:"1장. 이상행동의 이해",detail:"정의, 역사, 분류",status:"미완료",date:""},
+    {title:"2장. 불안장애",detail:"공황, 공포증, GAD",status:"미완료",date:""},
+    {title:"3장. 강박장애",detail:"OCD, 관련장애",status:"미완료",date:""},
+    {title:"4장. 외상장애",detail:"PTSD, 급성스트레스",status:"미완료",date:""},
+    {title:"5장. 우울장애",detail:"주요우울, 지속성우울",status:"미완료",date:""},
+    {title:"6장. 양극성장애",detail:"조증, 경조증",status:"미완료",date:""},
+    {title:"7장. 정신증",detail:"조현병 스펙트럼",status:"미완료",date:""},
+    {title:"8장. 신체증상장애",detail:"전환장애, 건강염려",status:"미완료",date:""},
+    {title:"9장. 해리장애",detail:"DID, 해리성 기억상실",status:"미완료",date:""},
+    {title:"10장. 섭식장애",detail:"거식증, 폭식증",status:"미완료",date:""},
+    {title:"11장. 성격장애",detail:"A/B/C군 성격장애",status:"미완료",date:""},
+    {title:"12장. 물질관련장애",detail:"알코올, 약물",status:"미완료",date:""},
+    {title:"13장. 신경발달장애",detail:"ADHD, 자폐스펙트럼",status:"미완료",date:""},
+  ]},
+  { name:"임상심리학", color:"#ead8f0", units:[
+    {title:"1장. 임상심리학 개관",detail:"역할, 역사",status:"미완료",date:""},
+    {title:"2장. 심리평가",detail:"면담, 행동관찰",status:"미완료",date:""},
+    {title:"3장. 심리검사 I",detail:"지능검사, MMPI",status:"미완료",date:""},
+    {title:"4장. 심리검사 II",detail:"투사검사, 신경심리",status:"미완료",date:""},
+    {title:"5장. 심리치료 I",detail:"정신분석, 인지행동",status:"미완료",date:""},
+    {title:"6장. 심리치료 II",detail:"인본주의, 집단치료",status:"미완료",date:""},
+    {title:"7장. 아동 임상",detail:"아동 평가 및 치료",status:"미완료",date:""},
+    {title:"8장. 건강심리",detail:"의료장면 적용",status:"미완료",date:""},
+    {title:"9장. 법정심리",detail:"형사/민사 장면",status:"미완료",date:""},
+    {title:"10장. 지역사회",detail:"예방, 지역사회 개입",status:"미완료",date:""},
+  ]},
+  { name:"인지치료", color:"#d8eaf0", units:[
+    {title:"1장. 인지치료 기초",detail:"Beck의 인지모델",status:"미완료",date:""},
+    {title:"2장. 자동적 사고",detail:"확인 및 수정",status:"미완료",date:""},
+    {title:"3장. 인지적 오류",detail:"종류와 수정법",status:"미완료",date:""},
+    {title:"4장. 핵심신념",detail:"스키마 작업",status:"미완료",date:""},
+    {title:"5장. 행동실험",detail:"인지행동 기법",status:"미완료",date:""},
+    {title:"6장. 우울 인지치료",detail:"우울 모델 적용",status:"미완료",date:""},
+    {title:"7장. 불안 인지치료",detail:"불안 모델 적용",status:"미완료",date:""},
+    {title:"8장. 사례개념화",detail:"실습 적용",status:"미완료",date:""},
+  ]},
+  { name:"통계학", color:"#f0ead8", units:[
+    {title:"1장. 기술통계",detail:"평균, 분산, 표준편차",status:"미완료",date:""},
+    {title:"2장. 확률분포",detail:"정규분포, t분포",status:"미완료",date:""},
+    {title:"3장. 추론통계",detail:"가설검정, 신뢰구간",status:"미완료",date:""},
+    {title:"4장. t검정",detail:"독립표본, 대응표본",status:"미완료",date:""},
+    {title:"5장. 분산분석",detail:"일원, 이원 ANOVA",status:"미완료",date:""},
+    {title:"6장. 상관분석",detail:"피어슨 상관계수",status:"미완료",date:""},
+    {title:"7장. 회귀분석",detail:"단순, 다중 회귀",status:"미완료",date:""},
+    {title:"8장. 비모수통계",detail:"카이제곱, Mann-Whitney",status:"미완료",date:""},
+  ]},
+  { name:"토익(LC)", color:"#dde8d8", units:[
+    {title:"Part 1. 사진묘사",detail:"인물/사물/배경",status:"미완료",date:""},
+    {title:"Part 2. 질의응답",detail:"의문문 유형",status:"미완료",date:""},
+    {title:"Part 3. 짧은 대화",detail:"대화 유형 파악",status:"미완료",date:""},
+    {title:"Part 4. 담화문",detail:"공지/안내/광고",status:"미완료",date:""},
+  ]},
+  { name:"토익(RC)", color:"#e8f0e8", units:[
+    {title:"Part 5. 단문공란",detail:"문법, 어휘",status:"미완료",date:""},
+    {title:"Part 6. 장문공란",detail:"문맥 파악",status:"미완료",date:""},
+    {title:"Part 7. 독해 단일지문",detail:"이메일, 공고",status:"미완료",date:""},
+    {title:"Part 7. 독해 복수지문",detail:"이중/삼중 지문",status:"미완료",date:""},
+  ]},
+  { name:"대학원준비", color:"#f0e8f0", units:[
+    {title:"연구계획서",detail:"주제 선정 및 작성",status:"미완료",date:""},
+    {title:"영어 논문 읽기",detail:"초록 해석 및 정리",status:"미완료",date:""},
+    {title:"면접 준비",detail:"예상 질문 및 답변",status:"미완료",date:""},
+    {title:"대학원 정보 수집",detail:"지원 학교 리서치",status:"미완료",date:""},
+    {title:"스터디 문제 제작",detail:"기출 및 예상 문제",status:"미완료",date:""},
+  ]},
+];
+
+// ── DB
+async function dbGet(userId, key) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/planner_data?user_id=eq.${encodeURIComponent(userId)}&week_key=eq.${encodeURIComponent(key)}&select=data`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    return rows?.[0]?.data || null;
+  } catch { return null; }
+}
+async function dbSet(userId, key, data) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/planner_data`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ user_id: userId, week_key: key, data, updated_at: new Date().toISOString() }),
+    });
+    return true;
+  } catch { return false; }
+}
+
+// ── 초기화
+function initColData() {
+  return {
+    date: "",
+    studyHours: "",
+    blocks: [{ subject:"", time:"", tasks: Array(DEFAULT_TASKS).fill(null).map(()=>({text:"",done:false})) }],
+    memo: "",
+  };
+}
+function initWeekData() {
+  return { ...Object.fromEntries(WEEK_COLS.map(c=>[c.id, initColData()])), weekMemo: MEMO_LABELS.map(()=>"") };
+}
+function mergeWeekData(saved) {
+  const base = initWeekData();
+  if (!saved) return base;
+  WEEK_COLS.forEach(col => {
+    if (!saved[col.id]) return;
+    const s = saved[col.id];
+    base[col.id] = {
+      date: s.date||"", studyHours: s.studyHours||"", memo: s.memo||"",
+      blocks: Array.isArray(s.blocks) && s.blocks.length ? s.blocks.map(b => ({
+        subject: b.subject||"", time: b.time||"",
+        tasks: Array.isArray(b.tasks) && b.tasks.length
+          ? b.tasks.map(t=>({text:String(t.text||""),done:!!t.done}))
+          : Array(DEFAULT_TASKS).fill(null).map(()=>({text:"",done:false}))
+      })) : initColData().blocks,
+    };
+  });
+  base.weekMemo = Array.isArray(saved.weekMemo) ? saved.weekMemo : MEMO_LABELS.map(()=>"");
+  return base;
+}
+function calcPct(blocks) {
+  const all = blocks.flatMap(b=>b.tasks).filter(t=>t.text.trim());
+  if (!all.length) return null;
+  return Math.round(all.filter(t=>t.done).length / all.length * 100);
+}
+
+// ── 로그인
+function LoginScreen({ onLogin }) {
+  const [v, setV] = useState("");
+  return (
+    <div style={{minHeight:"100vh",background:"#f0ede6",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"sans-serif",padding:16}}>
+      <div style={{background:"#fff",border:"2px solid #222",borderRadius:4,padding:"36px 28px",boxShadow:"4px 4px 0 #222",width:"100%",maxWidth:320,textAlign:"center"}}>
+        <div style={{fontSize:36,marginBottom:8}}>📖</div>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>주간 스터디 플래너</div>
+        <div style={{fontSize:11,color:"#888",marginBottom:20,lineHeight:1.6}}>닉네임으로 어디서든 동기화</div>
+        <input value={v} onChange={e=>setV(e.target.value)} onKeyDown={e=>e.key==="Enter"&&v.trim()&&onLogin(v.trim())}
+          placeholder="닉네임 입력" autoFocus
+          style={{width:"100%",border:"1px solid #aaa",padding:"8px 10px",fontSize:13,marginBottom:8,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <button onClick={()=>v.trim()&&onLogin(v.trim())}
+          style={{width:"100%",background:"#222",color:"#fff",border:"none",padding:"9px",fontSize:13,cursor:"pointer",fontWeight:700,fontFamily:"inherit"}}>
+          시작하기
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 메인
+function App() {
+  const [userId, setUserId]         = useState("");
+  const [tab, setTab]               = useState("planner");
+  const [month, setMonth]           = useState("5월");
+  const [week, setWeek]             = useState("1주차");
+  const [weekData, setWeekData]     = useState(initWeekData());
+  const [subjects, setSubjects]     = useState(DEFAULT_SUBJECTS.map(s=>s.name));
+  const [progress, setProgress]     = useState(DEFAULT_SUBJECTS);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [editBlock, setEditBlock]   = useState(null);
+  const [newSubject, setNewSubject] = useState("");
+  const [expandedSubj, setExpandedSubj] = useState(null);
+  const [addingUnit, setAddingUnit] = useState(null);
+  const [newUnit, setNewUnit]       = useState({title:"",detail:""});
+  const saveTimer = useRef(null);
+  const weekKey = `${month}_${week}`;
+
+  // 인쇄 CSS
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @media print {
+        @page { size: A4 landscape; margin: 4mm; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: #fff !important; font-size: 8px !important; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .excel-table { width: 100% !important; font-size: 7px !important; }
+        .excel-table td, .excel-table th { padding: 2px 3px !important; }
+        .task-input { display: none !important; }
+        .task-text { display: inline !important; }
+        input[type="text"], textarea, select { display: none !important; }
+        .cell-val { display: block !important; }
+        .add-btn, .edit-btn, .remove-btn { display: none !important; }
+      }
+      .task-text { display: none; }
+      .cell-val  { display: none; }
+      .print-only { display: none; }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    setLoading(true);
+    Promise.all([dbGet(userId,weekKey), dbGet(userId,"__subjects__"), dbGet(userId,"__progress__")])
+      .then(([sw,ss,sp]) => {
+        const merged = mergeWeekData(sw);
+        setWeekData(merged);
+        if (ss?.list) setSubjects(ss.list);
+        if (sp?.data) setProgress(sp.data);
+        setLoading(false);
+        setSaveStatus(sw ? "📂 불러옴 ("+weekKey+")" : "빈 데이터 ("+weekKey+")");
+        setTimeout(()=>setSaveStatus(""),4000);
+      });
+  }, [userId, weekKey]);
+
+  function autoSave(next) {
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      const ok = await dbSet(userId, weekKey, next);
+      setSaveStatus(ok?"✅ 저장됨 ("+weekKey+")":"❌ 저장 실패");
+      setTimeout(()=>setSaveStatus(""),3000);
+    }, 700);
+  }
+  function updateCol(colId,newCol) { const next={...weekData,[colId]:newCol}; setWeekData(next); autoSave(next); }
+  function updateTask(colId,bi,ti,f,v) {
+    const col=weekData[colId];
+    const newCol = {...col,blocks:col.blocks.map((b,i)=>i!==bi?b:{...b,tasks:b.tasks.map((t,j)=>j!==ti?t:{...t,[f]:v})})};
+    const next = {...weekData,[colId]:newCol};
+    setWeekData(next);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      const ok = await dbSet(userId, weekKey, next);
+      setSaveStatus(ok?"✅ 저장됨 ("+weekKey+")":"❌ 저장 실패");
+      setTimeout(()=>setSaveStatus(""),3000);
+    }, 500);
+  }
+  function addTask(colId,bi) { const col=weekData[colId]; updateCol(colId,{...col,blocks:col.blocks.map((b,i)=>i!==bi?b:{...b,tasks:[...b.tasks,{text:"",done:false}]})}); }
+  function removeTask(colId,bi,ti) { const col=weekData[colId]; updateCol(colId,{...col,blocks:col.blocks.map((b,i)=>i!==bi?b:{...b,tasks:b.tasks.length===1?[{text:"",done:false}]:b.tasks.filter((_,j)=>j!==ti)})}); }
+  function addBlock(colId) { const col=weekData[colId]; updateCol(colId,{...col,blocks:[...col.blocks,{subject:"",time:"",tasks:Array(DEFAULT_TASKS).fill(null).map(()=>({text:"",done:false}))}]}); }
+  function removeBlock(colId,bi) { const col=weekData[colId]; if(col.blocks.length===1)return; updateCol(colId,{...col,blocks:col.blocks.filter((_,i)=>i!==bi)}); }
+  function confirmEdit(colId,bi,s,t) { const col=weekData[colId]; updateCol(colId,{...col,blocks:col.blocks.map((b,i)=>i!==bi?b:{...b,subject:s,time:t})}); setEditBlock(null); }
+  function saveSubjects(ns) { setSubjects(ns); dbSet(userId,"__subjects__",{list:ns}); }
+  function saveProgress(np) { setProgress(np); dbSet(userId,"__progress__",{data:np}); }
+  function updateUnitStatus(si,ui,status) {
+    saveProgress(progress.map((s,i)=>i!==si?s:{...s,units:s.units.map((u,j)=>j!==ui?u:{...u,status,date:status==="완료"?new Date().toLocaleDateString("ko-KR"):""})}));
+  }
+  function addUnit(si) {
+    if (!newUnit.title.trim()) return;
+    saveProgress(progress.map((s,i)=>i!==si?s:{...s,units:[...s.units,{...newUnit,status:"미완료",date:""}]}));
+    setNewUnit({title:"",detail:""}); setAddingUnit(null);
+  }
+  function removeUnit(si,ui) { saveProgress(progress.map((s,i)=>i!==si?s:{...s,units:s.units.filter((_,j)=>j!==ui)})); }
+  function addNewSubject() {
+    if (!newSubject.trim()) return;
+    saveSubjects([...subjects, newSubject.trim()]);
+    if (!progress.find(s=>s.name===newSubject.trim())) {
+      const colors=["#fde8d8","#d8f0e8","#ead8f0","#d8eaf0","#f0ead8","#dde8d8","#e8f0e8","#f0e8f0"];
+      saveProgress([...progress,{name:newSubject.trim(),color:colors[progress.length%colors.length],units:[]}]);
+    }
+    setNewSubject("");
+  }
+
+  // 통계 state
+  const [statsMonth, setStatsMonth] = useState("5월");
+  const [allWeekData, setAllWeekData] = useState({});
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!userId || tab !== "stats") return;
+    setStatsLoading(true);
+    Promise.all(WEEKS.map(w => dbGet(userId, `${statsMonth}_${w}`).then(d => [w, d])))
+      .then(results => {
+        const merged = {};
+        results.forEach(([w, d]) => { merged[w] = mergeWeekData(d); });
+        setAllWeekData(merged);
+        setStatsLoading(false);
+      });
+  }, [userId, statsMonth, tab]);
+
+  function getWeekStats(wData) {
+    if (!wData) return { pct: null, totalHours: 0 };
+    const allTasks = WEEK_COLS.flatMap(col => (wData[col.id]?.blocks||[]).flatMap(b=>b.tasks)).filter(t=>t.text.trim());
+    const doneTasks = allTasks.filter(t=>t.done);
+    const pct = allTasks.length ? Math.round(doneTasks.length/allTasks.length*100) : null;
+    const totalHours = WEEK_COLS.reduce((sum,col)=>{
+      const h = parseFloat(wData[col.id]?.studyHours||"0");
+      return sum + (isNaN(h)?0:h);
+    }, 0);
+    return { pct, totalHours };
+  }
+
+  function getDayStats(wData, colId) {
+    if (!wData?.[colId]) return { pct: null, hours: 0 };
+    const tasks = (wData[colId].blocks||[]).flatMap(b=>b.tasks).filter(t=>t.text.trim());
+    const done  = tasks.filter(t=>t.done);
+    const pct   = tasks.length ? Math.round(done.length/tasks.length*100) : null;
+    const hours = parseFloat(wData[colId].studyHours||"0");
+    return { pct, hours: isNaN(hours)?0:hours };
+  }
+
+  if (!userId) return <LoginScreen onLogin={setUserId}/>;
+
+  const TABS = [["planner","📅 플래너"],["progress","📊 진도관리"],["stats","📈 성취통계"],["subjects","📚 과목"]];
+  const B = "1px solid #bbb"; // 셀 테두리
+
+  // 최대 블록 수 계산 (행 맞추기용)
+  const maxBlocks = Math.max(...WEEK_COLS.map(col => weekData[col.id].blocks.length));
+
+  return (
+    <div style={{fontFamily:"Arial, sans-serif",background:"#f0f0f0",minHeight:"100vh",color:"#222",fontSize:12}}>
+      {/* 상단바 */}
+      <div className="no-print" style={{background:"#333",color:"#fff",padding:"8px 14px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",position:"sticky",top:0,zIndex:50}}>
+        <span style={{fontSize:13,fontWeight:700}}>📖 스터디 플래너</span>
+        <span style={{fontSize:10,color:"#999"}}>({userId})</span>
+        <div style={{flex:1}}/>
+        {TABS.map(([id,lbl])=>(
+          <button key={id} onClick={()=>setTab(id)}
+            style={{background:tab===id?"#fff":"transparent",color:tab===id?"#222":"#aaa",border:"1px solid",borderColor:tab===id?"#fff":"#555",padding:"4px 12px",fontSize:11,cursor:"pointer",fontWeight:tab===id?700:400,fontFamily:"inherit"}}>
+            {lbl}
+          </button>
+        ))}
+        {tab==="planner"&&(
+          <button onClick={()=>window.print()}
+            style={{background:"#4a7c59",color:"#fff",border:"none",padding:"4px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>
+            🖨️ 출력
+          </button>
+        )}
+        <span style={{fontSize:10,color:"#999"}}>{loading?"⏳":saveStatus}</span>
+      </div>
+
+      {/* ── 플래너 탭 */}
+      {tab==="planner"&&(
+        <div style={{padding:"10px 8px",overflowX:"auto"}}>
+          {/* 월/주 선택 */}
+          <div className="no-print" style={{display:"flex",gap:4,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}>
+            <select value={month} onChange={e=>setMonth(e.target.value)}
+              style={{border:"1px solid #aaa",padding:"4px 8px",fontSize:12,background:"#fff",fontWeight:700,fontFamily:"inherit"}}>
+              {MONTHS.map(m=><option key={m}>{m}</option>)}
+            </select>
+            {WEEKS.map(w=>(
+              <button key={w} onClick={()=>setWeek(w)}
+                style={{background:week===w?"#333":"#fff",color:week===w?"#fff":"#333",border:"1px solid #aaa",padding:"4px 10px",fontSize:11,cursor:"pointer",fontWeight:week===w?700:400,fontFamily:"inherit"}}>
+                {w}
+              </button>
+            ))}
+          </div>
+
+          {/* 인쇄 제목 */}
+          <div className="print-only" style={{textAlign:"center",fontWeight:700,fontSize:13,marginBottom:4,background:"#333",color:"#fff",padding:"4px"}}>
+            WEEKLY STUDY PLANNER — {month} {week}
+          </div>
+
+          {/* ── 엑셀 스타일 테이블 */}
+          <table className="excel-table" style={{borderCollapse:"collapse",width:"100%",minWidth:900,background:"#fff",border:"2px solid #555"}}>
+            <colgroup>
+              {WEEK_COLS.map(col=><col key={col.id} style={{width:`${100/6}%`}}/>)}
+            </colgroup>
+
+            {/* 주차 제목 행 */}
+            <thead>
+              <tr>
+                <td colSpan={6} style={{background:"#333",color:"#fff",fontWeight:700,fontSize:13,textAlign:"center",padding:"6px",border:B}}>
+                  {month} {week}
+                </td>
+              </tr>
+
+              {/* 날짜 입력 행 */}
+              <tr>
+                {WEEK_COLS.map(col=>(
+                  <td key={col.id} style={{border:B,padding:"3px 5px",background:"#f8f8f8",textAlign:"center"}}>
+                    <input value={weekData[col.id].date} onChange={e=>updateCol(col.id,{...weekData[col.id],date:e.target.value})}
+                      placeholder="날짜 (예: 5/25)"
+                      style={{width:"100%",border:"none",background:"transparent",fontSize:11,textAlign:"center",outline:"none",fontFamily:"inherit"}}/>
+                    <span className="cell-val" style={{fontSize:11}}>{weekData[col.id].date}</span>
+                  </td>
+                ))}
+              </tr>
+
+              {/* 요일 헤더 행 */}
+              <tr>
+                {WEEK_COLS.map(col=>{
+                  const pct = calcPct(weekData[col.id].blocks);
+                  return (
+                    <th key={col.id} style={{background:col.color,border:B,padding:"5px 6px",fontWeight:700,fontSize:11,textAlign:"center"}}>
+                      <div>{col.label}</div>
+                      <div style={{fontSize:9,fontWeight:400,color:"#666"}}>{col.sub}</div>
+                      {pct!==null&&<div style={{fontSize:9,fontWeight:700,color:pct===100?"#4a7c59":"#555",marginTop:2}}>{pct}% 완료</div>}
+                    </th>
+                  );
+                })}
+              </tr>
+
+              {/* 공부시간 행 */}
+              <tr>
+                {WEEK_COLS.map(col=>(
+                  <td key={col.id} style={{border:B,padding:"2px 5px",background:col.color,fontSize:10}}>
+                    <span style={{color:"#888"}}>공부시간(h): </span>
+                    <input value={weekData[col.id].studyHours} onChange={e=>updateCol(col.id,{...weekData[col.id],studyHours:e.target.value})}
+                      placeholder="예: 3.5"
+                      style={{border:"none",background:"transparent",fontSize:10,width:50,outline:"none",fontFamily:"inherit"}}/>
+                    <span className="cell-val" style={{fontSize:10}}>{weekData[col.id].studyHours}</span>
+                  </td>
+                ))}
+              </tr>
+            </thead>
+
+            {/* 블록 바디 */}
+            <tbody>
+              {Array.from({length:maxBlocks}).map((_,bi)=>{
+                // 과목 헤더 행
+                const subjRow = (
+                  <tr key={`subj-${bi}`}>
+                    {WEEK_COLS.map(col=>{
+                      const block = weekData[col.id].blocks[bi];
+                      if (!block) return <td key={col.id} style={{border:B,background:"#f8f8f8"}}/>;
+                      return (
+                        <td key={col.id} style={{background:col.color,border:B,padding:"3px 6px",fontWeight:700,fontSize:11}}>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}>
+                            <span style={{color:"#555"}}>●</span>
+                            <span onClick={()=>setEditBlock({colId:col.id,bi})} style={{cursor:"pointer",flex:1}}>
+                              {block.subject || <span style={{color:"#aaa",fontWeight:400,fontSize:10}}>과목 입력...</span>}
+                            </span>
+                            {block.time&&<span style={{fontSize:9,color:"#777",fontWeight:400}}>({block.time})</span>}
+                            <span className="edit-btn no-print" onClick={()=>setEditBlock({colId:col.id,bi})} style={{fontSize:9,color:"#aaa",cursor:"pointer"}}>✏️</span>
+                            {weekData[col.id].blocks.length>1&&<span className="remove-btn no-print" onClick={()=>removeBlock(col.id,bi)} style={{fontSize:9,color:"#ccc",cursor:"pointer"}}>✕</span>}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+
+                // 태스크 행들
+                const maxTasks = Math.max(...WEEK_COLS.map(col=>weekData[col.id].blocks[bi]?.tasks.length||0));
+                const taskRows = Array.from({length:maxTasks}).map((_,ti)=>(
+                  <tr key={`task-${bi}-${ti}`}>
+                    {WEEK_COLS.map(col=>{
+                      const block = weekData[col.id].blocks[bi];
+                      const task  = block?.tasks[ti];
+                      if (!block||!task) return <td key={col.id} style={{border:B,background:"#f8f8f8",height:20}}/>;
+                      return (
+                        <td key={col.id} style={{border:B,padding:"1px 4px",verticalAlign:"middle",background:ti%2===0?"#fff":"#fafafa"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}>
+                            <input type="checkbox" checked={task.done} onChange={e=>updateTask(col.id,bi,ti,"done",e.target.checked)}
+                              style={{width:12,height:12,accentColor:"#4a7c59",flexShrink:0,cursor:"pointer"}}/>
+                            <input className="task-input" type="text" value={task.text} onChange={e=>updateTask(col.id,bi,ti,"text",e.target.value)}
+                              onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addTask(col.id,bi);}if(e.key==="Backspace"&&!task.text&&block.tasks.length>1){e.preventDefault();removeTask(col.id,bi,ti);}}}
+                              placeholder={ti===0?"내용 입력 (Enter↵)":""}
+                              style={{flex:1,border:"none",fontSize:11,outline:"none",fontFamily:"inherit",background:"transparent",textDecoration:task.done?"line-through":"none",color:task.done?"#aaa":"#222"}}/>
+                            <span className="task-text" style={{flex:1,fontSize:11,textDecoration:task.done?"line-through":"none",color:task.done?"#aaa":"#222"}}>{task.text}</span>
+                            <span className="remove-btn no-print" onClick={()=>removeTask(col.id,bi,ti)} style={{fontSize:9,color:"#ddd",cursor:"pointer"}}>✕</span>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ));
+
+                return [subjRow, ...taskRows];
+              })}
+
+              {/* 블록 추가 행 */}
+              <tr className="no-print">
+                {WEEK_COLS.map(col=>(
+                  <td key={col.id} style={{border:B,padding:"3px 6px",textAlign:"center"}}>
+                    <span className="add-btn" onClick={()=>addBlock(col.id)} style={{fontSize:10,color:"#bbb",cursor:"pointer"}}>+ 과목 추가</span>
+                  </td>
+                ))}
+              </tr>
+
+              {/* 메모 행 */}
+              <tr>
+                {WEEK_COLS.map(col=>(
+                  <td key={col.id} style={{border:B,padding:"3px 5px",background:"#fffef8",verticalAlign:"top"}}>
+                    <div style={{fontSize:9,color:"#bbb",marginBottom:2}}>📌 메모</div>
+                    <textarea value={weekData[col.id].memo} onChange={e=>updateCol(col.id,{...weekData[col.id],memo:e.target.value})}
+                      placeholder="자유 메모..." rows={2}
+                      style={{width:"100%",border:"none",fontSize:10,outline:"none",resize:"vertical",fontFamily:"inherit",background:"transparent",color:"#555",boxSizing:"border-box"}}/>
+                    <span className="cell-val" style={{fontSize:10,color:"#555",whiteSpace:"pre-wrap"}}>{weekData[col.id].memo}</span>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+
+          {/* 주간 메모 테이블 */}
+          <table style={{borderCollapse:"collapse",width:"100%",marginTop:6,background:"#fff",border:"2px solid #555"}}>
+            <thead>
+              <tr>
+                <td colSpan={4} style={{background:"#333",color:"#fff",fontWeight:700,fontSize:11,padding:"4px 8px",border:B}}>📝 주간 메모</td>
+              </tr>
+              <tr>
+                {MEMO_LABELS.map((lbl,i)=><th key={i} style={{border:B,padding:"3px 6px",background:"#f0f0f0",fontSize:10,fontWeight:700,textAlign:"left"}}>{lbl}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {MEMO_LABELS.map((lbl,i)=>(
+                  <td key={i} style={{border:B,padding:"3px 5px",verticalAlign:"top",width:"25%"}}>
+                    <textarea value={weekData.weekMemo?.[i]||""} onChange={e=>{
+                      const memo=[...(weekData.weekMemo||MEMO_LABELS.map(()=>""))];
+                      memo[i]=e.target.value;
+                      const next={...weekData,weekMemo:memo};
+                      setWeekData(next); autoSave(next);
+                    }} placeholder="입력..." rows={3}
+                      style={{width:"100%",border:"none",fontSize:11,outline:"none",resize:"vertical",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    <span className="cell-val" style={{fontSize:10,whiteSpace:"pre-wrap"}}>{weekData.weekMemo?.[i]||""}</span>
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── 진도관리 탭 */}
+      {tab==="progress"&&(
+        <div style={{padding:"10px 8px"}}>
+          {/* 요약 카드 */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(130px,1fr))",gap:6,marginBottom:12}}>
+            {progress.map((subj,si)=>{
+              const total=subj.units.length;
+              const done=subj.units.filter(u=>u.status==="완료").length;
+              const pct=total?Math.round(done/total*100):0;
+              return (
+                <div key={si} onClick={()=>setExpandedSubj(expandedSubj===si?null:si)}
+                  style={{background:"#fff",border:"1px solid #bbb",padding:"8px 10px",cursor:"pointer",boxShadow:"2px 2px 0 #ccc"}}>
+                  <div style={{fontSize:11,fontWeight:700,marginBottom:5}}>{subj.name}</div>
+                  <div style={{background:"#eee",height:5,overflow:"hidden",marginBottom:3}}>
+                    <div style={{background:pct===100?"#4a7c59":pct>=50?"#5b8db8":"#e8a838",width:`${pct}%`,height:"100%",transition:"width 0.3s"}}/>
+                  </div>
+                  <div style={{fontSize:10,color:"#888"}}>{done}/{total} · {pct}%</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 과목별 상세 테이블 */}
+          {progress.map((subj,si)=>(
+            <div key={si} style={{marginBottom:10,border:"1px solid #bbb",background:"#fff"}}>
+              <div onClick={()=>setExpandedSubj(expandedSubj===si?null:si)}
+                style={{background:subj.color,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #bbb"}}>
+                <span style={{fontWeight:700,flex:1}}>▶ {subj.name}</span>
+                {(()=>{
+                  const t=subj.units.length,d=subj.units.filter(u=>u.status==="완료").length,p=subj.units.filter(u=>u.status==="진행중").length;
+                  const pct=t?Math.round(d/t*100):0;
+                  return <><span style={{fontSize:10,color:"#4a7c59",fontWeight:700}}>완료 {d}</span><span style={{fontSize:10,color:"#5b8db8",fontWeight:700}}>진행중 {p}</span><span style={{fontSize:11,fontWeight:700}}>{pct}%</span></>;
+                })()}
+              </div>
+
+              {expandedSubj===si&&(
+                <table style={{borderCollapse:"collapse",width:"100%",fontSize:11}}>
+                  <thead>
+                    <tr style={{background:"#f0f0f0"}}>
+                      {["단원명","세부 내용","상태","완료일",""].map((h,i)=>(
+                        <th key={i} style={{border:B,padding:"4px 8px",fontWeight:700,fontSize:10,textAlign:"left"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subj.units.map((unit,ui)=>(
+                      <tr key={ui} style={{background:ui%2===0?"#fff":"#fafafa"}}>
+                        <td style={{border:B,padding:"4px 8px",fontWeight:500}}>{unit.title}</td>
+                        <td style={{border:B,padding:"4px 8px",color:"#666"}}>{unit.detail}</td>
+                        <td style={{border:B,padding:"4px 6px"}}>
+                          <select value={unit.status} onChange={e=>updateUnitStatus(si,ui,e.target.value)}
+                            style={{border:"1px solid #ddd",padding:"2px 6px",fontSize:11,fontFamily:"inherit",background:"#fff",color:STATUS_COLORS[unit.status],fontWeight:700,outline:"none",cursor:"pointer"}}>
+                            {STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td style={{border:B,padding:"4px 8px",color:"#888",fontSize:10}}>{unit.date}</td>
+                        <td style={{border:B,padding:"4px 6px",textAlign:"center"}}>
+                          <span onClick={()=>removeUnit(si,ui)} style={{fontSize:11,color:"#ccc",cursor:"pointer"}}>✕</span>
+                        </td>
+                      </tr>
+                    ))}
+                    {addingUnit===si?(
+                      <tr>
+                        <td style={{border:B,padding:"4px 6px"}}>
+                          <input value={newUnit.title} onChange={e=>setNewUnit({...newUnit,title:e.target.value})} placeholder="단원명"
+                            style={{border:"1px solid #ddd",padding:"3px 6px",fontSize:11,width:"100%",fontFamily:"inherit",outline:"none"}}/>
+                        </td>
+                        <td style={{border:B,padding:"4px 6px"}}>
+                          <input value={newUnit.detail} onChange={e=>setNewUnit({...newUnit,detail:e.target.value})} placeholder="세부 내용"
+                            style={{border:"1px solid #ddd",padding:"3px 6px",fontSize:11,width:"100%",fontFamily:"inherit",outline:"none"}}/>
+                        </td>
+                        <td colSpan={3} style={{border:B,padding:"4px 6px"}}>
+                          <button onClick={()=>addUnit(si)} style={{background:"#333",color:"#fff",border:"none",padding:"3px 10px",fontSize:11,cursor:"pointer",marginRight:4,fontFamily:"inherit"}}>추가</button>
+                          <button onClick={()=>setAddingUnit(null)} style={{background:"#eee",color:"#555",border:"none",padding:"3px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>취소</button>
+                        </td>
+                      </tr>
+                    ):(
+                      <tr>
+                        <td colSpan={5} style={{border:B,padding:"4px 8px"}}>
+                          <span onClick={()=>setAddingUnit(si)} style={{fontSize:10,color:"#aaa",cursor:"pointer"}}>+ 단원 추가</span>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── 성취통계 탭 */}
+      {tab==="stats"&&(
+        <div style={{padding:"10px 8px"}}>
+          {/* 월 선택 */}
+          <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+            <span style={{fontWeight:700,fontSize:13}}>📈 월별 성취 통계</span>
+            <select value={statsMonth} onChange={e=>setStatsMonth(e.target.value)}
+              style={{border:"1px solid #aaa",padding:"4px 8px",fontSize:12,background:"#fff",fontWeight:700,fontFamily:"inherit"}}>
+              {MONTHS.map(m=><option key={m}>{m}</option>)}
+            </select>
+            {statsLoading&&<span style={{fontSize:11,color:"#888"}}>⏳ 불러오는 중...</span>}
+          </div>
+
+          {/* 월 요약 카드 */}
+          {(()=>{
+            const monthPcts = WEEKS.map(w=>getWeekStats(allWeekData[w]).pct).filter(p=>p!==null);
+            const monthHours = WEEKS.reduce((sum,w)=>sum+getWeekStats(allWeekData[w]).totalHours,0);
+            const avgPct = monthPcts.length ? Math.round(monthPcts.reduce((a,b)=>a+b,0)/monthPcts.length) : null;
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8,marginBottom:12}}>
+                {[
+                  {label:"월 평균 완료율", val:avgPct!==null?`${avgPct}%`:"데이터 없음", color:"#4a7c59"},
+                  {label:"총 공부시간", val:`${monthHours.toFixed(1)}h`, color:"#5b8db8"},
+                  {label:"기록된 주차", val:`${monthPcts.length}주`, color:"#e8a838"},
+                  {label:"주당 평균", val:monthPcts.length?`${(monthHours/monthPcts.length).toFixed(1)}h`:"—", color:"#888"},
+                ].map((item,i)=>(
+                  <div key={i} style={{background:"#fff",border:"1px solid #bbb",padding:"10px 12px",boxShadow:"2px 2px 0 #ccc"}}>
+                    <div style={{fontSize:10,color:"#888",marginBottom:4}}>{item.label}</div>
+                    <div style={{fontSize:18,fontWeight:700,color:item.color}}>{item.val}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* 주차별 성취도 테이블 */}
+          <table style={{borderCollapse:"collapse",width:"100%",background:"#fff",border:"2px solid #555",marginBottom:12}}>
+            <thead>
+              <tr>
+                <td colSpan={9} style={{background:"#333",color:"#fff",fontWeight:700,fontSize:12,padding:"5px 8px",border:B}}>
+                  {statsMonth} 주차별 요일별 성취도
+                </td>
+              </tr>
+              <tr style={{background:"#f0f0f0"}}>
+                <th style={{border:B,padding:"4px 8px",fontSize:10,fontWeight:700,textAlign:"left"}}>주차</th>
+                {WEEK_COLS.map(col=><th key={col.id} style={{border:B,padding:"4px 6px",fontSize:10,fontWeight:700,textAlign:"center",background:col.color}}>{col.label}</th>)}
+                <th style={{border:B,padding:"4px 6px",fontSize:10,fontWeight:700,textAlign:"center",background:"#e8e8e8"}}>주간 완료율</th>
+                <th style={{border:B,padding:"4px 6px",fontSize:10,fontWeight:700,textAlign:"center",background:"#e8e8e8"}}>총 공부시간</th>
+              </tr>
+            </thead>
+            <tbody>
+              {WEEKS.map((w,wi)=>{
+                const wData = allWeekData[w];
+                const {pct:wPct, totalHours} = getWeekStats(wData);
+                return (
+                  <tr key={w} style={{background:wi%2===0?"#fff":"#fafafa"}}>
+                    <td style={{border:B,padding:"5px 8px",fontWeight:700,fontSize:11}}>{w}</td>
+                    {WEEK_COLS.map(col=>{
+                      const {pct,hours} = getDayStats(wData, col.id);
+                      return (
+                        <td key={col.id} style={{border:B,padding:"4px 6px",textAlign:"center",fontSize:11}}>
+                          {pct!==null?(
+                            <div>
+                              <div style={{marginBottom:3}}>
+                                <div style={{background:"#eee",height:4,borderRadius:2,overflow:"hidden",width:60,margin:"0 auto"}}>
+                                  <div style={{background:pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838",width:`${pct}%`,height:"100%",borderRadius:2}}/>
+                                </div>
+                              </div>
+                              <div style={{fontWeight:700,color:pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838"}}>{pct}%</div>
+                              {hours>0&&<div style={{fontSize:9,color:"#aaa"}}>{hours}h</div>}
+                            </div>
+                          ):<span style={{color:"#ddd",fontSize:10}}>—</span>}
+                        </td>
+                      );
+                    })}
+                    <td style={{border:B,padding:"4px 8px",textAlign:"center",fontWeight:700,fontSize:12,background:"#f5f5f5"}}>
+                      {wPct!==null?<span style={{color:wPct>=80?"#4a7c59":wPct>=50?"#5b8db8":"#e8a838"}}>{wPct}%</span>:<span style={{color:"#ddd"}}>—</span>}
+                    </td>
+                    <td style={{border:B,padding:"4px 8px",textAlign:"center",fontWeight:700,fontSize:12,background:"#f5f5f5"}}>
+                      {totalHours>0?`${totalHours.toFixed(1)}h`:<span style={{color:"#ddd"}}>—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* 월 합계 행 */}
+              {(()=>{
+                const monthHours = WEEKS.reduce((sum,w)=>sum+getWeekStats(allWeekData[w]).totalHours,0);
+                const monthPcts = WEEKS.map(w=>getWeekStats(allWeekData[w]).pct).filter(p=>p!==null);
+                const avgPct = monthPcts.length?Math.round(monthPcts.reduce((a,b)=>a+b,0)/monthPcts.length):null;
+                return (
+                  <tr style={{background:"#333",color:"#fff"}}>
+                    <td style={{border:B,padding:"5px 8px",fontWeight:700,fontSize:11}}>월 합계</td>
+                    {WEEK_COLS.map(col=>{
+                      const dayHours = WEEKS.reduce((sum,w)=>{
+                        const h=parseFloat(allWeekData[w]?.[col.id]?.studyHours||"0");
+                        return sum+(isNaN(h)?0:h);
+                      },0);
+                      return <td key={col.id} style={{border:B,padding:"4px 6px",textAlign:"center",fontSize:10,color:"#ccc"}}>{dayHours>0?`${dayHours.toFixed(1)}h`:"—"}</td>;
+                    })}
+                    <td style={{border:B,padding:"4px 8px",textAlign:"center",fontWeight:700,fontSize:12}}>{avgPct!==null?`avg ${avgPct}%`:"—"}</td>
+                    <td style={{border:B,padding:"4px 8px",textAlign:"center",fontWeight:700,fontSize:12}}>{monthHours>0?`${monthHours.toFixed(1)}h`:"—"}</td>
+                  </tr>
+                );
+              })()}
+            </tbody>
+          </table>
+
+          {/* 과목별 진도율 요약 */}
+          <table style={{borderCollapse:"collapse",width:"100%",background:"#fff",border:"2px solid #555"}}>
+            <thead>
+              <tr>
+                <td colSpan={4} style={{background:"#333",color:"#fff",fontWeight:700,fontSize:12,padding:"5px 8px",border:B}}>
+                  📚 과목별 진도율
+                </td>
+              </tr>
+              <tr style={{background:"#f0f0f0"}}>
+                {["과목명","전체 단원","완료","진도율"].map((h,i)=>(
+                  <th key={i} style={{border:B,padding:"4px 8px",fontSize:10,fontWeight:700,textAlign:i===0?"left":"center"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {progress.map((subj,si)=>{
+                const total=subj.units.length;
+                const done=subj.units.filter(u=>u.status==="완료").length;
+                const pct=total?Math.round(done/total*100):0;
+                return (
+                  <tr key={si} style={{background:si%2===0?"#fff":"#fafafa"}}>
+                    <td style={{border:B,padding:"5px 8px",fontWeight:600,fontSize:11}}>{subj.name}</td>
+                    <td style={{border:B,padding:"5px 8px",textAlign:"center",fontSize:11}}>{total}</td>
+                    <td style={{border:B,padding:"5px 8px",textAlign:"center",fontSize:11,color:"#4a7c59",fontWeight:700}}>{done}</td>
+                    <td style={{border:B,padding:"5px 8px",textAlign:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{flex:1,background:"#eee",height:6,borderRadius:3,overflow:"hidden"}}>
+                          <div style={{background:pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838",width:`${pct}%`,height:"100%",transition:"width 0.3s"}}/>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:pct>=80?"#4a7c59":pct>=50?"#5b8db8":"#e8a838",minWidth:32}}>{pct}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── 과목 관리 탭 */}
+      {tab==="subjects"&&(
+        <div style={{padding:"10px 8px",maxWidth:480}}>
+          <table style={{borderCollapse:"collapse",width:"100%",background:"#fff",border:"1px solid #bbb"}}>
+            <thead>
+              <tr>
+                <th colSpan={2} style={{background:"#333",color:"#fff",padding:"6px 10px",fontSize:12,fontWeight:700,textAlign:"left",border:B}}>
+                  📚 과목 목록
+                </th>
+              </tr>
+              <tr style={{background:"#f0f0f0"}}>
+                <th style={{border:B,padding:"4px 10px",fontSize:10,fontWeight:700,textAlign:"left"}}>과목명</th>
+                <th style={{border:B,padding:"4px 6px",fontSize:10,fontWeight:700,width:40}}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {subjects.map((s,si)=>(
+                <tr key={si} style={{background:si%2===0?"#fff":"#fafafa"}}>
+                  <td style={{border:B,padding:"5px 10px",fontSize:12}}>{s}</td>
+                  <td style={{border:B,padding:"5px 6px",textAlign:"center"}}>
+                    <span onClick={()=>saveSubjects(subjects.filter((_,i)=>i!==si))} style={{fontSize:12,color:"#ccc",cursor:"pointer"}}>✕</span>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td style={{border:B,padding:"5px 8px"}}>
+                  <input value={newSubject} onChange={e=>setNewSubject(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addNewSubject()}
+                    placeholder="새 과목 입력 후 Enter"
+                    style={{border:"none",fontSize:12,width:"100%",outline:"none",fontFamily:"inherit"}}/>
+                </td>
+                <td style={{border:B,padding:"5px 6px",textAlign:"center"}}>
+                  <button onClick={addNewSubject} style={{background:"#333",color:"#fff",border:"none",padding:"3px 8px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>추가</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{fontSize:10,color:"#aaa",marginTop:6,padding:"0 2px"}}>
+            플래너에서 과목 셀 클릭 시 이 목록에서 선택 가능해요
+          </div>
+        </div>
+      )}
+
+      {/* 블록 편집 모달 */}
+      {editBlock&&(
+        <div onClick={e=>e.target===e.currentTarget&&setEditBlock(null)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",border:"2px solid #333",padding:"20px",width:"100%",maxWidth:320,boxShadow:"4px 4px 0 #333"}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:12,borderBottom:"1px solid #eee",paddingBottom:8}}>과목 편집</div>
+            <div style={{fontSize:10,color:"#888",marginBottom:6}}>과목 선택</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:12}}>
+              {subjects.map(s=>{
+                const cur = weekData[editBlock.colId]?.blocks[editBlock.bi]?.subject;
+                return (
+                  <button key={s} onClick={()=>{ const col=weekData[editBlock.colId]; const b=col.blocks[editBlock.bi]; updateCol(editBlock.colId,{...col,blocks:col.blocks.map((bl,i)=>i!==editBlock.bi?bl:{...bl,subject:s})}); }}
+                    style={{border:cur===s?"2px solid #333":"1px solid #ddd",padding:"3px 10px",fontSize:11,cursor:"pointer",background:cur===s?"#333":"#fff",color:cur===s?"#fff":"#555",fontFamily:"inherit",fontWeight:cur===s?700:400}}>
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{fontSize:10,color:"#888",marginBottom:4}}>직접 입력</div>
+            <input value={weekData[editBlock.colId]?.blocks[editBlock.bi]?.subject||""} 
+              onChange={e=>{ const col=weekData[editBlock.colId]; updateCol(editBlock.colId,{...col,blocks:col.blocks.map((b,i)=>i!==editBlock.bi?b:{...b,subject:e.target.value})}); }}
+              placeholder="과목명"
+              style={{width:"100%",border:"1px solid #ddd",padding:"7px 10px",fontSize:13,marginBottom:8,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <div style={{fontSize:10,color:"#888",marginBottom:4}}>시간</div>
+            <input value={weekData[editBlock.colId]?.blocks[editBlock.bi]?.time||""}
+              onChange={e=>{ const col=weekData[editBlock.colId]; updateCol(editBlock.colId,{...col,blocks:col.blocks.map((b,i)=>i!==editBlock.bi?b:{...b,time:e.target.value})}); }}
+              placeholder="예: 14:30~17:00"
+              style={{width:"100%",border:"1px solid #ddd",padding:"7px 10px",fontSize:13,marginBottom:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setEditBlock(null)} style={{background:"#eee",color:"#555",border:"1px solid #ccc",padding:"6px 14px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>닫기</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
